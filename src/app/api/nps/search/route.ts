@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   const wkplNm = searchParams.get("wkplNm");
   const pageNo = parseInt(searchParams.get("pageNo") ?? "1", 10);
-  const numOfRows = parseInt(searchParams.get("numOfRows") ?? "10", 10);
+  const numOfRows = parseInt(searchParams.get("numOfRows") ?? "100", 10);
 
   if (!wkplNm || wkplNm.trim().length === 0) {
     return NextResponse.json(
@@ -194,13 +194,16 @@ export async function GET(req: NextRequest) {
     // 각 그룹 내 순서는 공공 API 반환 순서 유지 (가입자수 필드 없음)
     const sortedItems = [...exact, ...startsWith, ...contains, ...similar];
 
+    // 사용자에게는 상위 10건만 노출
+    const displayedItems = sortedItems.slice(0, 10);
+
     return NextResponse.json({
       resultCode,
       resultMsg,
-      numOfRows,
+      numOfRows: 10,
       pageNo,
       totalCount: data?.response?.body?.totalCount,
-      items: sortedItems,
+      items: displayedItems,
     });
   } catch (err) {
     console.error("[NPS] 요청 실패:", err);
