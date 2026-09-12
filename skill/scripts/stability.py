@@ -334,6 +334,77 @@ def search_company(ROWS, query):
     return exact, starts_with, contains, similar
 
 
+def run(path=None, company=None, top_n=None):
+    """diagnose.py가 import 해서 쓰는 진입점.
+
+    CLI 블록(168행 이하)과 동일한 계산 흐름을 함수 형태로 제공한 것이다.
+    반환 순서는 diagnose.py:135의 언패킹과 일치한다.
+    """
+    if path is None:
+        path = SAMPLE
+    IS_SAMPLE = os.path.abspath(path) == os.path.abspath(SAMPLE)
+    if not os.path.exists(path):
+        sys.exit("[중단] 파일을 찾을 수 없습니다: %s" % path)
+    ROWS, dropped, enc = read_rows(path)
+    if not ROWS:
+        sys.exit("[중단] 유효한 사업장이 한 건도 없습니다.")
+
+    # ── 지표 계산 (CLI 201~241행과 동일) ──────────────────────────────
+    for r in ROWS:
+        r["순증감"] = r["신규"] - r["상실"]
+        r["총이동"] = r["신규"] + r["상실"]
+        r["월회전율"] = r["총이동"] / 2 / r["가입자수"]
+        r["분리율"] = r["상실"] / r["가입자수"]
+        r["은폐지수"] = r["총이동"] / max(abs(r["순증감"]), 1)
+        r["추정소득"] = (r["고지금액"] / r["가입자수"] / RATE) if r["고지금액"] > 0 else 0
+
+    by_ind = defaultdict(list)
+    for r in ROWS:
+        if r["업종"]:
+            by_ind[r["업종"]].append(r["월회전율"])
+    self_base = {k: st.median(v) for k, v in by_ind.items() if len(v) >= 30}
+    bundled = load_baseline()
+    baseline_q = load_baseline_quantiles()
+    USE_SELF = len(ROWS) >= 20000 and len(self_base) >= 50
+    base = self_base if USE_SELF else (bundled or self_base)
+    BASE_SRC = ("입력 데이터 자체 산출(%s개 업종)" % "{:,}".format(len(self_base))) if USE_SELF \
+        else "동봉 기준선(2026-07 전국 52,957개소, %s개 업종)" % "{:,}".format(len(bundled))
+    allmed = st.median([r["월회전율"] for r in ROWS]) or 0.0233
+
+    for r in ROWS:
+        b = base.get(r["업종"], allmed) or allmed
+        r["업종배수"] = r["월회전율"] / b if b > 0 else 0.0
+        w = []
+        if DAILY.search(r["사업장명"]):
+            w.append("일용사업장")
+        if r["업종"] and CONSTRUCTION.search(r["업종"]):
+            w.append("건설현장형업종")
+        if PUBLIC_TEMP.search(r["사업장명"]):
+            w.append("공공·기간제")
+        if r["추정소득"] >= CAP_OBSERVED * 0.995:
+            w.append("소득상한도달")
+        if r["가입자수"] < MIN_HEADCOUNT:
+            w.append("소규모")
+        r["경고"] = w
+
+    ym = Counter(r["년월"] for r in ROWS if r["년월"]).most_common(1)
+    YM = ym[0][0] if ym else "미상"
+    SEASON = YM.endswith("-07") or YM.endswith("-01")
+
+    analyzed = [r for r in ROWS if r["가입자수"] >= MIN_HEADCOUNT]
+
+    # 회사 검색이 요청됐으면 candidate 목록을 만든다 (CLI 461~528행과 동일),
+    # 없으면 빈 목록 — diagnose.py는 company 있을 때만 result_list를 쓴다.
+    if company:
+        exact, starts_with, contains, similar = search_company(ROWS, company)
+        result_list = list(exact) + list(starts_with) + list(contains) + list(similar)
+        result_list = result_list[:10]
+    else:
+        result_list = []
+
+    return ROWS, analyzed, base, allmed, YM, SEASON, dropped, enc, BASE_SRC, result_list
+
+
 def print_diagnosis(r, out, base_src_note=None, max_total_move=None):
     """단일 사업장 진단 출력을 출력 함수 out(=P)로 기록한다. 표는 기존 포맷을 유지하고,
     그 아래 A-1·A-2·C-3 블록과 해설 2~3문장을 덧붙인다."""
