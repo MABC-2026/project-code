@@ -4,6 +4,7 @@ import sys
 import tempfile
 import traceback
 import statistics as _statistics
+from http.server import BaseHTTPRequestHandler
 
 # Vercel Python 서버리스 함수: /api/diagnose
 # skill/scripts/stability.py 의 계산 로직을 그대로 import 해서 사용한다.
@@ -86,152 +87,165 @@ def _build_diagnosis_dict(row, base, allmed):
     }
 
 
-def diagnose(request):
+class handler(BaseHTTPRequestHandler):
     """Vercel Python 서버리스 함수 진입점. POST /api/diagnose."""
-    try:
-        if request.method == "OPTIONS":
-            return ("", 204, {"Content-Type": "text/plain"})
-        if request.method != "POST":
-            return (json.dumps({"error": "POST만 지원"}, ensure_ascii=False), 405,
-                    {"Content-Type": "application/json"})
 
-        raw_body = getattr(request, "body", None)
-        if raw_body is None:
-            return (json.dumps({"error": "본문 없음"}, ensure_ascii=False), 400,
-                    {"Content-Type": "application/json"})
-        if isinstance(raw_body, (bytes, bytearray)):
-            raw_body = raw_body.decode("utf-8", errors="replace")
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+
+    def do_POST(self):
         try:
-            body = json.loads(raw_body) if raw_body.strip() else {}
-        except ValueError:
-            return (json.dumps({"error": "JSON 파싱 실패"}, ensure_ascii=False), 400,
-                    {"Content-Type": "application/json"})
-        if not isinstance(body, dict):
-            return (json.dumps({"error": "JSON 객체 필요"}, ensure_ascii=False), 400,
-                    {"Content-Type": "application/json"})
+            content_length = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_length) if content_length > 0 else b""
+            if not raw_body.strip():
+                body = {}
+            else:
+                try:
+                    body = json.loads(raw_body.decode("utf-8"))
+                except ValueError:
+                    self._json_error("JSON 파싱 실패", 400)
+                    return
+            if not isinstance(body, dict):
+                self._json_error("JSON 객체 필요", 400)
+                return
 
-        company = (body.get("company") or "").strip()
-        csv_path_raw = (body.get("csvPath") or "").strip()
-        top = body.get("top")
-        pick = body.get("pick")
-        try:
-            top = int(top) if top is not None else None
-            if pick is not None:
-                pick = int(pick)
-                if pick < 1:
-                    raise ValueError
-        except (TypeError, ValueError):
-            return (json.dumps({"error": "'top'과 'pick'은 양의 정수여야 함"}, ensure_ascii=False), 400,
-                    {"Content-Type": "application/json"})
+            company = (body.get("company") or "").strip()
+            csv_path_raw = (body.get("csvPath") or "").strip()
+            top = body.get("top")
+            pick = body.get("pick")
+            try:
+                top = int(top) if top is not None else None
+                if pick is not None:
+                    pick = int(pick)
+                    if pick < 1:
+                        raise ValueError
+            except (TypeError, ValueError):
+                self._json_error("'top'과 'pick'은 양의 정수여야 함", 400)
+                return
 
-        csv_path = _resolve_csv_path(csv_path_raw if csv_path_raw else "")
-        csv_text = _read_csv_text(csv_path)
-        rows, dropped = _rows_from_text(csv_text)
-        if not rows:
-            return (json.dumps({"error": "유효한 사업장이 없음"}, ensure_ascii=False), 422,
-                    {"Content-Type": "application/json"})
+            csv_path = _resolve_csv_path(csv_path_raw if csv_path_raw else "")
+            csv_text = _read_csv_text(csv_path)
+            rows, dropped = _rows_from_text(csv_text)
+            if not rows:
+                self._json_error("유효한 사업장이 없음", 422)
+                return
 
-        _analyzed, analyzed, base, allmed, YM, SEASON, _dropped_report, enc, BASE_SRC, result_list = run(
-            path=csv_path, company=company, top_n=top,
-        )
+            _analyzed, analyzed, base, allmed, YM, SEASON, _dropped_report, enc, BASE_SRC, result_list = run(
+                path=csv_path, company=company, top_n=top,
+            )
 
-        is_sample = os.path.abspath(csv_path) == os.path.abspath(SAMPLE_PATH)
+            is_sample = os.path.abspath(csv_path) == os.path.abspath(SAMPLE_PATH)
 
-        if company:
-            cand = list(result_list)
-            cand = cand[:10]
+            if company:
+                cand = list(result_list)
+                cand = cand[:10]
+                out = {
+                    "ok": True,
+                    "입력_샘플시연": is_sample,
+                    "검색결과_건수": len(cand),
+                    "자료년월": YM,
+                    "계절성주의": bool(SEASON),
+                    "기준선출처": BASE_SRC,
+                    "분석대상수": len(analyzed),
+                    "전체행수": len(rows),
+                    "제외행수": dropped,
+                    "업종기준선개수": len(base),
+                }
+                if not cand:
+                    out["회사_미발견"] = True
+                    out["검색그룹"] = {"정확히일치": [], "입력어로시작": [], "입력어포함": [], "유사명": []}
+                elif len(cand) == 1:
+                    out["진단결과"] = _build_diagnosis_dict(cand[0], base, allmed)
+                else:
+                    out["후보목록"] = [{"번호": i + 1, "사업장명": r["사업장명"],
+                                         "업종": r["업종"], "시도": r["시도"],
+                                         "가입자수": r["가입자수"]} for i, r in enumerate(cand)]
+                    out["후보_수"] = len(cand)
+                    out["검색그룹"] = {
+                        "정확히일치": [r["사업장명"] for r in cand if company.replace(" ", "") in r["사업장명"].replace(" ", "")][:5],
+                        "입력어로시작": [],
+                        "입력어포함": [],
+                        "유사명": [],
+                    }
+                self._json_response(out, 200)
+                return
+
+            # 전체 리포트
+            cand = [r for r in analyzed if not r["경고"] and r["총이동"] >= 10
+                    and r["가입자수"] >= RANK_MIN_HEADCOUNT and r["업종"] not in NO_INDUSTRY]
+            rank = [r for r in cand if abs(r["순증감"]) <= max(1, r["가입자수"] * 0.01)
+                    and r["업종배수"] >= 2.0]
+            cand_ranked = [r for r in analyzed if not r["경고"] and r["총이동"] >= 10
+                           and r["가입자수"] >= RANK_MIN_HEADCOUNT and r["업종"] not in NO_INDUSTRY]
+
+            meds = sorted(base.values())
+            hi_q = meds[min(len(meds) - 1, int(len(meds) * 0.95))] if meds else 0
+            lo_q = meds[min(len(meds) - 1, int(len(meds) * 0.05))] if meds else 0
+            편차배수 = (hi_q / lo_q) if len(meds) >= 2 and lo_q > 0 else None
+
             out = {
                 "ok": True,
                 "입력_샘플시연": is_sample,
-                "검색결과_건수": len(cand),
                 "자료년월": YM,
                 "계절성주의": bool(SEASON),
-                "기준선출처": BASE_SRC,
                 "분석대상수": len(analyzed),
                 "전체행수": len(rows),
                 "제외행수": dropped,
-                "업종기준선개수": len(base),
-            }
-            if not cand:
-                out["회사_미발견"] = True
-                out["검색그룹"] = {"정확히일치": [], "입력어로시작": [], "입력어포함": [], "유사명": []}
-            elif len(cand) == 1:
-                out["진단결과"] = _build_diagnosis_dict(cand[0], base, allmed)
-            else:
-                out["후보목록"] = [{"번호": i + 1, "사업장명": r["사업장명"],
-                                     "업종": r["업종"], "시도": r["시도"],
-                                     "가입자수": r["가입자수"]} for i, r in enumerate(cand)]
-                out["후보_수"] = len(cand)
-                out["검색그룹"] = {
-                    "정확히일치": [r["사업장명"] for r in cand if company.replace(" ", "") in r["사업장명"].replace(" ", "")][:5],
-                    "입력어로시작": [],
-                    "입력어포함": [],
-                    "유사명": [],
-                }
-            return (json.dumps(out, ensure_ascii=False), 200,
-                    {"Content-Type": "application/json"})
-
-        # 전체 리포트
-        cand = [r for r in analyzed if not r["경고"] and r["총이동"] >= 10
-                and r["가입자수"] >= RANK_MIN_HEADCOUNT and r["업종"] not in NO_INDUSTRY]
-        rank = [r for r in cand if abs(r["순증감"]) <= max(1, r["가입자수"] * 0.01)
-                and r["업종배수"] >= 2.0]
-        cand_ranked = [r for r in analyzed if not r["경고"] and r["총이동"] >= 10
-                       and r["가입자수"] >= RANK_MIN_HEADCOUNT and r["업종"] not in NO_INDUSTRY]
-
-        meds = sorted(base.values())
-        hi_q = meds[min(len(meds) - 1, int(len(meds) * 0.95))] if meds else 0
-        lo_q = meds[min(len(meds) - 1, int(len(meds) * 0.05))] if meds else 0
-        편차배수 = (hi_q / lo_q) if len(meds) >= 2 and lo_q > 0 else None
-
-        out = {
-            "ok": True,
-            "입력_샘플시연": is_sample,
-            "자료년월": YM,
-            "계절성주의": bool(SEASON),
-            "분석대상수": len(analyzed),
-            "전체행수": len(rows),
-            "제외행수": dropped,
-            "기준선출처": BASE_SRC,
-            "업종기준선개수": len(base),
-            "summary": {
-                "월회전율중앙값": round(float(_statistics.median([r["월회전율"] for r in analyzed])), 6) if analyzed else 0.0,
-                "연환산중앙값": round(float(_statistics.median([r["월회전율"] for r in analyzed]) or 0) * 1200, 2) if analyzed else 0.0,
-                "총원은그대로대량이동_개수": len(rank),
-                "총원은그대로대량이동_비율": round(len(rank) / len(analyzed) * 100, 2) if analyzed else 0.0,
-                "해석주의_사업장수": sum(1 for r in analyzed if r["경고"]),
                 "기준선출처": BASE_SRC,
-                "자료년월": YM,
-            },
-            "높은업종_상위5": [{"업종": k, "중앙값": round(v * 100, 2)}
-                              for k, v in sorted(base.items(), key=lambda x: -x[1])[:5]],
-            "낮은업종_하위5": [{"업종": k, "중앙값": round(v * 100, 2)}
-                              for k, v in sorted(base.items(), key=lambda x: x[1])[:5]],
-            "업종간편차배수": round(편차배수, 2) if 편차배수 else None,
-            "총원숨긴이동_상위": [
-                {"사업장명": r["사업장명"], "업종": r["업종"], "가입자수": r["가입자수"],
-                 "순증감": r["순증감"], "총이동": r["총이동"],
-                 "업종배수": round(r["업종배수"], 2), "은폐지수": round(r["은폐지수"], 2)}
-                for r in sorted(rank, key=lambda x: -x["업종배수"])[:(top or 10)]
-            ],
-            "업종대비_상위": [
-                {"사업장명": r["사업장명"], "업종": r["업종"], "가입자수": r["가입자수"],
-                 "월회전율": round(r["월회전율"] * 100, 2),
-                 "업종중앙값": round(base[r["업종"]] * 100, 2),
-                 "배수": round(r["업종배수"], 2)}
-                for r in sorted([r for r in cand_ranked if r["업종"] in base],
-                                key=lambda x: -x["업종배수"])[:(top or 10)]
-            ],
-        }
-        return (json.dumps(out, ensure_ascii=False), 200,
-                {"Content-Type": "application/json"})
+                "업종기준선개수": len(base),
+                "summary": {
+                    "월회전율중앙값": round(float(_statistics.median([r["월회전율"] for r in analyzed])), 6) if analyzed else 0.0,
+                    "연환산중앙값": round(float(_statistics.median([r["월회전율"] for r in analyzed]) or 0) * 1200, 2) if analyzed else 0.0,
+                    "총원은그대로대량이동_개수": len(rank),
+                    "총원은그대로대량이동_비율": round(len(rank) / len(analyzed) * 100, 2) if analyzed else 0.0,
+                    "해석주의_사업장수": sum(1 for r in analyzed if r["경고"]),
+                    "기준선출처": BASE_SRC,
+                    "자료년월": YM,
+                },
+                "높은업종_상위5": [{"업종": k, "중앙값": round(v * 100, 2)}
+                                  for k, v in sorted(base.items(), key=lambda x: -x[1])[:5]],
+                "낮은업종_하위5": [{"업종": k, "중앙값": round(v * 100, 2)}
+                                  for k, v in sorted(base.items(), key=lambda x: x[1])[:5]],
+                "업종간편차배수": round(편차배수, 2) if 편차배수 else None,
+                "총원숨긴이동_상위": [
+                    {"사업장명": r["사업장명"], "업종": r["업종"], "가입자수": r["가입자수"],
+                     "순증감": r["순증감"], "총이동": r["총이동"],
+                     "업종배수": round(r["업종배수"], 2), "은폐지수": round(r["은폐지수"], 2)}
+                    for r in sorted(rank, key=lambda x: -x["업종배수"])[:(top or 10)]
+                ],
+                "업종대비_상위": [
+                    {"사업장명": r["사업장명"], "업종": r["업종"], "가입자수": r["가입자수"],
+                     "월회전율": round(r["월회전율"] * 100, 2),
+                     "업종중앙값": round(base[r["업종"]] * 100, 2),
+                     "배수": round(r["업종배수"], 2)}
+                    for r in sorted([r for r in cand_ranked if r["업종"] in base],
+                                    key=lambda x: -x["업종배수"])[:(top or 10)]
+                ],
+            }
+            self._json_response(out, 200)
 
-    except FileNotFoundError as e:
-        return (json.dumps({"error": str(e)}, ensure_ascii=False), 404,
-                {"Content-Type": "application/json"})
-    except ValueError as e:
-        return (json.dumps({"error": str(e)}, ensure_ascii=False), 400,
-                {"Content-Type": "application/json"})
-    except Exception:
-        return (json.dumps({"error": "서버 오류", "detail": traceback.format_exc()},
-                            ensure_ascii=False), 500, {"Content-Type": "application/json"})
+        except FileNotFoundError as e:
+            self._json_error(str(e), 404)
+        except ValueError as e:
+            self._json_error(str(e), 400)
+        except Exception:
+            self._json_error("서버 오류", 500, detail=traceback.format_exc())
+
+    def _json_response(self, obj, status=200):
+        body = json.dumps(obj, ensure_ascii=False)
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body.encode("utf-8"))
+
+    def _json_error(self, message, status, detail=None):
+        obj = {"error": message}
+        if detail:
+            obj["detail"] = detail
+        body = json.dumps(obj, ensure_ascii=False)
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body.encode("utf-8"))
