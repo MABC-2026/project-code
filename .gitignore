@@ -1,12 +1,1 @@
-.env
-.env.*
-!.env.example
-.vercel
-node_modules
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-dist/
-build/
-.next/
+.env\r\n.env.*\r\n!.env.example\r\n.vercel\r\nnode_modules\r\n.next/\r\n__pycache__/\r\n*.pyc\r\n*.pyo\r\n*.egg-info/\r\ndist/\r\nbuild/
