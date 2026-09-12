@@ -116,13 +116,91 @@ export async function GET(req: NextRequest) {
       wkplJnngStcd: it.wkplJnngStcd,
     }));
 
+    // ── 4단계 정렬 (skill/scripts/stability.py:search_company 와 동일 로직) ──
+    function norm(s: string): string {
+      return s.replace(/[\s_\-()]/g, "").toLowerCase();
+    }
+    function stripCorp(name: string): string {
+      let r = name;
+      for (const p of [
+        /주식회사\s*/g,
+        /유한회사\s*/g,
+        /유한책임회사\s*/g,
+        /\(\s*주\s*\)/g,
+        /（\s*주\s*）/g,
+        /\(\s*유\s*\)/g,
+        /（\s*유\s*）/g,
+        /㈜\s*/g,
+      ]) {
+        r = r.replace(p, "");
+      }
+      return r.trim();
+    }
+    function bigrams(s: string): Set<string> {
+      const n = norm(s);
+      if (n.length < 2) return new Set();
+      const set = new Set<string>();
+      for (let i = 0; i < n.length - 1; i++) {
+        set.add(n.slice(i, i + 2));
+      }
+      return set;
+    }
+    function jaccard(a: string, b: string): number {
+      const ba = bigrams(a);
+      const bb = bigrams(b);
+      if (ba.size === 0 && bb.size === 0) return 0;
+      let inter = 0;
+      for (const x of ba) {
+        if (bb.has(x)) inter++;
+      }
+      const union = new Set([...ba, ...bb]);
+      return inter / union.size;
+    }
+
+    const qNorm = norm(wkplNm);
+    const qStripped = stripCorp(wkplNm);
+    const exact: any[] = [];
+    const startsWith: any[] = [];
+    const contains: any[] = [];
+    const similar: any[] = [];
+    const seen = new Set<string>();
+
+    for (const it of cleanItems) {
+      const name = it.wkplNm;
+      if (seen.has(name)) continue;
+      const nNorm = norm(name);
+      const nStripped = stripCorp(name);
+      if (stripCorp(nNorm) === stripCorp(qNorm)) {
+        exact.push(it);
+        seen.add(name);
+        continue;
+      }
+      if (nNorm.startsWith(qNorm)) {
+        startsWith.push(it);
+        seen.add(name);
+        continue;
+      }
+      if (nNorm.includes(qNorm)) {
+        contains.push(it);
+        seen.add(name);
+        continue;
+      }
+      if (jaccard(nStripped, qStripped) >= 0.5) {
+        similar.push(it);
+        seen.add(name);
+      }
+    }
+
+    // 각 그룹 내 순서는 공공 API 반환 순서 유지 (가입자수 필드 없음)
+    const sortedItems = [...exact, ...startsWith, ...contains, ...similar];
+
     return NextResponse.json({
       resultCode,
       resultMsg,
       numOfRows,
       pageNo,
       totalCount: data?.response?.body?.totalCount,
-      items: cleanItems,
+      items: sortedItems,
     });
   } catch (err) {
     console.error("[NPS] 요청 실패:", err);
