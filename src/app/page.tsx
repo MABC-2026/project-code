@@ -5,7 +5,15 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [company, setCompany] = useState("");
   const [phase, setPhase] = useState<"search" | "candidates" | "result" | "report">("search");
-  const [candidates, setCandidates] = useState<Array<{ 번호: number; 사업장명: string; 업종: string; 시도: string; 가입자수: number }>>([]);
+  const [candidates, setCandidates] = useState<Array<{
+    번호: number;
+    사업장명: string;
+    업종?: string;
+    시도?: string;
+    가입자수?: number;
+    source: "nps" | "csv";
+    wkplNm?: string;
+  }>>([]);
   const [pick, setPick] = useState<number | null>(null);
   const [result, setResult] = useState<any>(null);
   const [report, setReport] = useState<any>(null);
@@ -28,6 +36,23 @@ export default function Home() {
     return res.json();
   }, []);
 
+  const callNpsSearch = useCallback(async (wkplNm: string) => {
+    const params = new URLSearchParams({
+      wkplNm: wkplNm.trim(),
+      dataType: "json",
+      numOfRows: "10",
+      pageNo: "1",
+    });
+    const res = await fetch(`/api/nps/search?${params.toString()}`);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      let detail = "";
+      try { detail = JSON.parse(txt).error || txt; } catch { detail = txt; }
+      throw new Error(detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }, []);
+
   const handleSearch = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!company.trim()) return;
@@ -38,6 +63,33 @@ export default function Home() {
     setResult(null);
     setReport(null);
     try {
+      // 1단계: 공공데이터포털 NPS API로 실제 사업장명 검색
+      let npsResult: { items?: Array<{ seq?: number; wkplNm?: string; wkplRoadNmDtlAddr?: string; wkplJnngStcd?: string }>; totalCount?: number; error?: string } | null = null;
+      try {
+        npsResult = await callNpsSearch(company);
+      } catch (npsErr: any) {
+        // NPS API 실패 시 조용히 넘어가고 CSV 폴백 사용
+        console.warn("[검색] NPS API 호출 실패, CSV 폴백 사용:", npsErr.message);
+      }
+
+      if (npsResult && npsResult.items && npsResult.items.length > 0) {
+        // NPS에서 받은 사업장들을 후보로 표시 (CSV 검색 불필요)
+        const npsItems = npsResult.items;
+        const displayed = npsItems.slice(0, 10);
+        setCandidates(
+          displayed.map((it, i) => ({
+            번호: i + 1,
+            사업장명: it.wkplNm || "(이름 미상)",
+            시도: it.wkplRoadNmDtlAddr ? it.wkplRoadNmDtlAddr.split(" ")[0] || "" : "",
+            source: "nps" as const,
+            wkplNm: it.wkplNm || undefined,
+          }))
+        );
+        setPhase("candidates");
+        return;
+      }
+
+      // NPS 결과 없음 → CSV 파일에서 직접 검색
       const data = await callApi({ company, csvPath: "sample_workplaces.csv" });
       if (!data.ok) throw new Error(data.error || "응답 이상");
       if (data.회사_미발견) {
@@ -51,12 +103,19 @@ export default function Home() {
         return;
       }
       if (data.후보목록 && data.후보목록.length > 0) {
-        setCandidates(data.후보목록);
+        setCandidates(
+          data.후보목록.map((c: any, i: number) => ({
+            ...c,
+            source: "csv" as const,
+            wkplNm: c.사업장명,
+          }))
+        );
         setPhase("candidates");
         setPick(null);
         return;
       }
-      setError("후보를 찾지 못했습니다.");
+      // NPS도 없고 CSV도 없음 → 에러
+      setError("해당 이름의 사업장을 찾지 못했습니다.\n\n국민연금 가입 사업장명은 법인명 기준이라 브랜드명과 다를 수 있습니다.");
       setPhase("search");
     } catch (err: any) {
       setError(err.message || "검색 중 오류");
@@ -64,18 +123,45 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [company, callApi]);
+  }, [company, callApi, callNpsSearch]);
 
   const handlePick = useCallback(async (번호: number) => {
+    const c = candidates.find((c) => c.번호 === 번호);
+    if (!c) {
+      setError("후보가 없습니다.");
+      setPhase("search");
+      return;
+    }
     setLoading(true);
     setError(null);
     setPhase("search");
     try {
-      const data = await callApi({ company, csvPath: "sample_workplaces.csv", pick: 번호 });
+      // NPS에서 받은 후보는 wkplNm(법인명)이 있으면 그걸로 진단, 없으면 기존 company 사용
+      const target = c.wkplNm || c.사업장명;
+      const data = await callApi({ company: target, csvPath: "sample_workplaces.csv", pick: 번호 });
       if (!data.ok) throw new Error(data.error || "응답 이상");
       if (data.진단결과) {
         setResult(data.진단결과);
         setPhase("result");
+        return;
+      }
+      // CSV에 해당 사업장이 없을 때 (특히 NPS 후보인 경우)
+      if (c.source === "nps" || data.회사_미발견) {
+        setError(`${target}은(는) CSV 샘플 데이터에 없어 진단할 수 없습니다. 전체 원본 데이터를 넣으면 진단 가능합니다.`);
+        setPhase("search");
+        return;
+      }
+      // 그 외 CSV 후보목록이 있으면 candidates로
+      if (data.후보목록 && data.후보목록.length > 0) {
+        setCandidates(
+          data.후보목록.map((cc: any, i: number) => ({
+            ...cc,
+            source: "csv" as const,
+            wkplNm: cc.사업장명,
+          }))
+        );
+        setPhase("candidates");
+        setPick(null);
         return;
       }
       setError("진단 결과를 받지 못했습니다.");
@@ -86,7 +172,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [company, callApi]);
+  }, [company, callApi, candidates]);
 
   const handleShowReport = useCallback(async () => {
     setLoading(true);
@@ -153,8 +239,9 @@ export default function Home() {
       {phase === "candidates" && candidates.length > 0 && (
         <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4">
           <p className="mb-3 text-sm text-zinc-500">
-            검색어 "{company}" 에 대해 {candidates.length}건의 후보가 있습니다.
-            번호를 선택하면 해당 사업장을 진단합니다.
+            {candidates.length > 0 && candidates[0]?.source === "nps"
+              ? `NPS 공공데이터에서 "${company}" 관련 ${candidates.length}건을 찾았습니다. 번호를 선택하면 해당 사업장을 진단합니다.`
+              : `검색어 "${company}" 에 대해 ${candidates.length}건의 후보가 있습니다. 번호를 선택하면 해당 사업장을 진단합니다.`}
           </p>
           <ul className="space-y-2">
             {candidates.map((c) => (
@@ -163,7 +250,11 @@ export default function Home() {
                   <span className="rounded-lg bg-zinc-200 px-2 py-0.5 text-sm font-medium text-zinc-700">{c.번호}</span>
                   <div className="min-w-0">
                     <div className="truncate font-medium text-zinc-900">{c.사업장명}</div>
-                    <div className="text-xs text-zinc-500">{c.업종} · {c.시도} · 가입자 {fmtNum(c.가입자수)}명</div>
+                    <div className="text-xs text-zinc-500">
+                      {c.source === "nps" ? "NPS 공공데이터" : "CSV 샘플 데이터"}
+                      {c.시도 ? ` · ${c.시도}` : ""}
+                      {c.가입자수 != null ? ` · 가입자 ${fmtNum(c.가입자수)}명` : " ·가입자 수: 진단 후 확인"}
+                    </div>
                   </div>
                 </div>
                 <button
