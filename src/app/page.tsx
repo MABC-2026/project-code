@@ -20,6 +20,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [top, setTop] = useState(10);
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
 
   const callApi = useCallback(async (body: Record<string, any>) => {
     const res = await fetch("/api/diagnose", {
@@ -60,12 +62,17 @@ export default function Home() {
     setCandidates([]);
     setResult(null);
     setReport(null);
+    setProgress(0);
+    setProgressLabel("CSV 데이터 확인 중...");
     try {
       // 1. CSV 먼저 확인
+      setProgress(20);
       const data = await callApi({ company, csvPath: "sample_workplaces.csv" });
       if (data.ok) {
         if (data.진단결과) {
           setResult(data.진단결과);
+          setProgress(100);
+          setProgressLabel("");
           setPhase("result");
           return;
         }
@@ -77,6 +84,8 @@ export default function Home() {
               wkplNm: c.사업장명,
             }))
           );
+          setProgress(100);
+          setProgressLabel("");
           setPhase("candidates");
           setPick(null);
           return;
@@ -84,9 +93,13 @@ export default function Home() {
       }
 
       // 2. CSV에 없음 → NPS 진단 시도
+      setProgress(40);
+      setProgressLabel("NPS 공공데이터 조회 중...");
       const npsData = await callNpsDiagnose(company);
       if (npsData.ok && npsData.진단결과) {
         setResult(npsData.진단결과);
+        setProgress(100);
+        setProgressLabel("");
         setPhase("result");
         return;
       }
@@ -98,6 +111,8 @@ export default function Home() {
             wkplNm: c.사업장명 || undefined,
           }))
         );
+        setProgress(100);
+        setProgressLabel("");
         setPhase("candidates");
         return;
       }
@@ -115,6 +130,8 @@ export default function Home() {
       setPhase("search");
     } finally {
       setLoading(false);
+      setProgress(0);
+      setProgressLabel("");
     }
   }, [company, callApi, callNpsDiagnose]);
 
@@ -128,8 +145,11 @@ export default function Home() {
     setLoading(true);
     setError(null);
     setPhase("search");
+    setProgress(0);
+    setProgressLabel(c.source === "nps" ? "NPS 공공데이터에서 상세 조회 중..." : "CSV 데이터에서 해당 사업장 찾는 중...");
     try {
       const target = c.wkplNm || c.사업장명;
+      setProgress(30);
       let data: any;
       if (c.source === "csv") {
         // CSV 후보면 기존 API로 진단
@@ -138,9 +158,12 @@ export default function Home() {
         // NPS 후보면 NPS 진단 API로 직접 진단 (pick 번호 포함)
         data = await callNpsDiagnose(target, 번호);
       }
+      setProgress(80);
       if (!data.ok) throw new Error(data.error || "응답 이상");
       if (data.진단결과) {
         setResult(data.진단결과);
+        setProgress(100);
+        setProgressLabel("");
         setPhase("result");
         return;
       }
@@ -152,6 +175,8 @@ export default function Home() {
             wkplNm: cc.사업장명 || undefined,
           }))
         );
+        setProgress(100);
+        setProgressLabel("");
         setPhase("candidates");
         setPick(null);
         return;
@@ -163,6 +188,8 @@ export default function Home() {
       setPhase("search");
     } finally {
       setLoading(false);
+      setProgress(0);
+      setProgressLabel("");
     }
   }, [company, callApi, callNpsDiagnose, candidates]);
 
@@ -195,6 +222,30 @@ export default function Home() {
       <p className="text-zinc-500 text-center max-w-md">
         국민연금공단 가입 사업장 내역(공공데이터) 기준, 사업장별 인력 안정성 지표를 계산합니다.
       </p>
+
+      {loading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-72 rounded-xl bg-white/95 p-6 shadow-2xl">
+            <div className="mb-4">
+              <div className="h-3 w-full rounded-full bg-zinc-200 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300 ease-out"
+                  style={{
+                    width: `${progress}%`,
+                    backgroundColor: progress === 100 ? "#22c55e" : "#1e293b",
+                  }}
+                />
+              </div>
+            </div>
+            {progressLabel && (
+              <p className="text-sm text-zinc-600">{progressLabel}</p>
+            )}
+            <p className="mt-3 text-xs text-zinc-400 text-center">
+              {progress > 0 && progress < 100 ? `${progress}%` : progress === 100 ? "완료" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="w-full max-w-md rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800 whitespace-pre-line">
