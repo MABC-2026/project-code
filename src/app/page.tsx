@@ -36,14 +36,12 @@ export default function Home() {
     return res.json();
   }, []);
 
-  const callNpsSearch = useCallback(async (wkplNm: string) => {
-    const params = new URLSearchParams({
-      wkplNm: wkplNm.trim(),
-      dataType: "json",
-      numOfRows: "10",
-      pageNo: "1",
+  const callNpsDiagnose = useCallback(async (wkplNm: string, pick?: number) => {
+    const res = await fetch("/api/nps/diagnose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company: wkplNm, pick }),
     });
-    const res = await fetch(`/api/nps/search?${params.toString()}`);
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       let detail = "";
@@ -63,58 +61,53 @@ export default function Home() {
     setResult(null);
     setReport(null);
     try {
-      // 1단계: 공공데이터포털 NPS API로 실제 사업장명 검색
-      let npsResult: { items?: Array<{ seq?: number; wkplNm?: string; wkplRoadNmDtlAddr?: string; wkplJnngStcd?: string }>; totalCount?: number; error?: string } | null = null;
-      try {
-        npsResult = await callNpsSearch(company);
-      } catch (npsErr: any) {
-        // NPS API 실패 시 조용히 넘어가고 CSV 폴백 사용
-        console.warn("[검색] NPS API 호출 실패, CSV 폴백 사용:", npsErr.message);
+      // 1. CSV 먼저 확인
+      const data = await callApi({ company, csvPath: "sample_workplaces.csv" });
+      if (data.ok) {
+        if (data.진단결과) {
+          setResult(data.진단결과);
+          setPhase("result");
+          return;
+        }
+        if (data.후보목록 && data.후보목록.length > 0) {
+          setCandidates(
+            data.후보목록.map((c: any, i: number) => ({
+              ...c,
+              source: "csv" as const,
+              wkplNm: c.사업장명,
+            }))
+          );
+          setPhase("candidates");
+          setPick(null);
+          return;
+        }
       }
 
-      if (npsResult && npsResult.items && npsResult.items.length > 0) {
-        // NPS에서 받은 사업장들을 후보로 표시 (CSV 검색 불필요)
-        const npsItems = npsResult.items;
-        const displayed = npsItems.slice(0, 10);
+      // 2. CSV에 없음 → NPS 진단 시도
+      const npsData = await callNpsDiagnose(company);
+      if (npsData.ok && npsData.진단결과) {
+        setResult(npsData.진단결과);
+        setPhase("result");
+        return;
+      }
+      if (npsData.ok && npsData.후보목록 && npsData.후보목록.length > 0) {
         setCandidates(
-          displayed.map((it, i) => ({
-            번호: i + 1,
-            사업장명: it.wkplNm || "(이름 미상)",
-            시도: it.wkplRoadNmDtlAddr ? it.wkplRoadNmDtlAddr.split(" ")[0] || "" : "",
+          npsData.후보목록.map((c: any, i: number) => ({
+            ...c,
             source: "nps" as const,
-            wkplNm: it.wkplNm || undefined,
+            wkplNm: c.사업장명 || undefined,
           }))
         );
         setPhase("candidates");
         return;
       }
-
-      // NPS 결과 없음 → CSV 파일에서 직접 검색
-      const data = await callApi({ company, csvPath: "sample_workplaces.csv" });
-      if (!data.ok) throw new Error(data.error || "응답 이상");
-      if (data.회사_미발견) {
+      if (npsData.회사_미발견) {
         setError("해당 이름의 사업장을 찾지 못했습니다.\n\n국민연금 가입 사업장명은 법인명 기준이라 브랜드명과 다를 수 있습니다.");
         setPhase("search");
         return;
       }
-      if (data.진단결과) {
-        setResult(data.진단결과);
-        setPhase("result");
-        return;
-      }
-      if (data.후보목록 && data.후보목록.length > 0) {
-        setCandidates(
-          data.후보목록.map((c: any, i: number) => ({
-            ...c,
-            source: "csv" as const,
-            wkplNm: c.사업장명,
-          }))
-        );
-        setPhase("candidates");
-        setPick(null);
-        return;
-      }
-      // NPS도 없고 CSV도 없음 → 에러
+
+      // 둘 다 실패
       setError("해당 이름의 사업장을 찾지 못했습니다.\n\n국민연금 가입 사업장명은 법인명 기준이라 브랜드명과 다를 수 있습니다.");
       setPhase("search");
     } catch (err: any) {
@@ -123,7 +116,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [company, callApi, callNpsSearch]);
+  }, [company, callApi, callNpsDiagnose]);
 
   const handlePick = useCallback(async (번호: number) => {
     const c = candidates.find((c) => c.번호 === 번호);
@@ -136,35 +129,34 @@ export default function Home() {
     setError(null);
     setPhase("search");
     try {
-      // NPS에서 받은 후보는 wkplNm(법인명)이 있으면 그걸로 진단, 없으면 기존 company 사용
       const target = c.wkplNm || c.사업장명;
-      const data = await callApi({ company: target, csvPath: "sample_workplaces.csv", pick: 번호 });
+      let data: any;
+      if (c.source === "csv") {
+        // CSV 후보면 기존 API로 진단
+        data = await callApi({ company: target, csvPath: "sample_workplaces.csv", pick: 번호 });
+      } else {
+        // NPS 후보면 NPS 진단 API로 직접 진단 (pick 번호 포함)
+        data = await callNpsDiagnose(target, 번호);
+      }
       if (!data.ok) throw new Error(data.error || "응답 이상");
       if (data.진단결과) {
         setResult(data.진단결과);
         setPhase("result");
         return;
       }
-      // CSV에 해당 사업장이 없을 때 (특히 NPS 후보인 경우)
-      if (c.source === "nps" || data.회사_미발견) {
-        setError(`${target}은(는) CSV 샘플 데이터에 없어 진단할 수 없습니다. 전체 원본 데이터를 넣으면 진단 가능합니다.`);
-        setPhase("search");
-        return;
-      }
-      // 그 외 CSV 후보목록이 있으면 candidates로
       if (data.후보목록 && data.후보목록.length > 0) {
         setCandidates(
           data.후보목록.map((cc: any, i: number) => ({
             ...cc,
-            source: "csv" as const,
-            wkplNm: cc.사업장명,
+            source: c.source,
+            wkplNm: cc.사업장명 || undefined,
           }))
         );
         setPhase("candidates");
         setPick(null);
         return;
       }
-      setError("진단 결과를 받지 못했습니다.");
+      setError(`${target}은(는) 진단할 수 없습니다.`);
       setPhase("search");
     } catch (err: any) {
       setError(err.message || "선택 중 오류");
@@ -172,7 +164,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [company, callApi, candidates]);
+  }, [company, callApi, callNpsDiagnose, candidates]);
 
   const handleShowReport = useCallback(async () => {
     setLoading(true);
@@ -278,7 +270,15 @@ export default function Home() {
 
       {phase === "result" && result && (
         <div className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white p-4">
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900">{result.사업장명}</h2>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-lg font-semibold text-zinc-900">{result.사업장명}</h2>
+            {result.자료출처 && (
+              <span className="text-xs text-zinc-500">
+                {result.자료출처}
+                {result.계절성주의 ? " ⚠️ 7월·공공기관 인사이동 시기" : ""}
+              </span>
+            )}
+          </div>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">업종 / 지역</dt>
             <dd className="text-zinc-900">{result.업종 || "-"} / {result.시도 || "-"}</dd>
