@@ -357,7 +357,7 @@ export default function Home() {
             </button>
             <button
               className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
-              onClick={() => setReport(null)}
+              onClick={() => { setPhase("search"); setReport(null); }}
             >
               닫기
             </button>
