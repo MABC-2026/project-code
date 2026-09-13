@@ -253,7 +253,15 @@ export default function Home() {
 
           <button
             className="mt-4 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
-            onClick={() => { setPhase("search"); setCompany(""); setResult(null); }}
+            onClick={() => {
+              if (candidates.length > 0) {
+                setPhase("candidates");
+              } else {
+                setPhase("search");
+                setCompany("");
+              }
+              setResult(null);
+            }}
           >
             뒤로
           </button>
