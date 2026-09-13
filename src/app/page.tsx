@@ -112,7 +112,6 @@ export default function Home() {
       <h1 className="text-2xl font-semibold text-zinc-900">사업장 인력 안정성 진단</h1>
       <p className="text-zinc-500 text-center max-w-md">
         국민연금공단 가입 사업장 내역(공공데이터) 기준, 사업장별 인력 안정성 지표를 계산합니다.
-        업종 기준선은 assets/industry_baseline.csv 에서 읽어옵니다.
       </p>
 
       {error && (
