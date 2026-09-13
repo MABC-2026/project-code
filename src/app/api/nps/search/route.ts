@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const maxDuration = 60;
 import * as fs from "fs";
 import * as path from "path";
 
@@ -107,14 +108,41 @@ export async function GET(req: NextRequest) {
     // item 이 객체 하나일 때도 배열로 정규화
     const normalizedItems = Array.isArray(items) ? items : [items];
 
-    // ⚠️ 이 응답에는 가입자수가 없다. 이름·주소만 반환.
-    //    가입자수는 다음 단계(상세조회)에서 가져온다.
-    const cleanItems = normalizedItems.map((it: any) => ({
-      seq: it.seq,
-      wkplNm: it.wkplNm,
-      wkplRoadNmDtlAddr: it.wkplRoadNmDtlAddr,
-      wkplJnngStcd: it.wkplJnngStcd,
-    }));
+    // ── 중복 제거: 사업장명(wkplNm) + 사업자번호(bzowrRgstNo) 기준 그룹화 ──
+    // 같은 사업장이 달마다 한 번씩(최대 12회) 들어오며, seq와 주소가 달라도
+    // wkplNm + bzowrRgstNo 가 같으면 한 업체로 묶는다. 주소는 묶는 기준에 넣지 않는다.
+    const groups = new Map<string, typeof normalizedItems>();
+    for (const it of normalizedItems) {
+      const key = `${it.wkplNm}|${it.bzowrRgstNo ?? ""}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(it);
+    }
+
+    // 그룹별 대표: dataCrtYm 이 가장 최신인 항목 하나 + 개월수(그룹 크기)
+    const representatives: Array<{
+      seq: string;
+      wkplNm: string;
+      wkplRoadNmDtlAddr: string;
+      wkplJnngStcd: string;
+      bzowrRgstNo: string;
+      dataCrtYm: string;
+      months: number;
+    }> = [];
+    for (const [, group] of groups) {
+      let best = group[0];
+      for (const it of group) {
+        if (it.dataCrtYm > best.dataCrtYm) best = it;
+      }
+      representatives.push({
+        seq: best.seq,
+        wkplNm: best.wkplNm,
+        wkplRoadNmDtlAddr: best.wkplRoadNmDtlAddr,
+        wkplJnngStcd: best.wkplJnngStcd,
+        bzowrRgstNo: best.bzowrRgstNo ?? "",
+        dataCrtYm: best.dataCrtYm,
+        months: group.length,
+      });
+    }
 
     // ── 4단계 정렬 (skill/scripts/stability.py:search_company 와 동일 로직) ──
     function norm(s: string): string {
@@ -159,35 +187,37 @@ export async function GET(req: NextRequest) {
 
     const qNorm = norm(wkplNm);
     const qStripped = stripCorp(wkplNm);
-    const exact: any[] = [];
-    const startsWith: any[] = [];
-    const contains: any[] = [];
-    const similar: any[] = [];
+    const exact: typeof representatives = [];
+    const startsWith: typeof representatives = [];
+    const contains: typeof representatives = [];
+    const similar: typeof representatives = [];
     const seen = new Set<string>();
 
-    for (const it of cleanItems) {
+    for (const it of representatives) {
       const name = it.wkplNm;
-      if (seen.has(name)) continue;
+      const bzno = it.bzowrRgstNo;
+      const key = `${name}|${bzno}`;
+      if (seen.has(key)) continue;
       const nNorm = norm(name);
       const nStripped = stripCorp(name);
       if (stripCorp(nNorm) === stripCorp(qNorm)) {
         exact.push(it);
-        seen.add(name);
+        seen.add(key);
         continue;
       }
       if (nNorm.startsWith(qNorm)) {
         startsWith.push(it);
-        seen.add(name);
+        seen.add(key);
         continue;
       }
       if (nNorm.includes(qNorm)) {
         contains.push(it);
-        seen.add(name);
+        seen.add(key);
         continue;
       }
       if (jaccard(nStripped, qStripped) >= 0.5) {
         similar.push(it);
-        seen.add(name);
+        seen.add(key);
       }
     }
 
