@@ -47,17 +47,43 @@ description: 회사·기업의 인력 안정성을 국민연금 가입 사업장
 ## 파일 배치와 각 폴더를 읽는 시점
 
 ```
-employer-stability-audit/
-├── SKILL.md                      ← 이 파일. 스킬 진입점·원칙·절차·예외
-├── scripts/
-│   ├── stability.py              지표 계산. 실행의 중심. 항상 이것으로 숫자를 만든다
-│   └── extract_sample.py         원본 공개데이터에서 sample_workplaces.csv·industry_baseline.csv를 재생성할 때만 쓴다 (평소엔 안 씀)
-├── references/
-│   └── metrics.md                지표 정의·임계값·근거·한계를 물을 때 읽는다. 기준이 궁금하면 여기
-└── assets/
-    ├── sample_workplaces.csv     사용자가 파일 안 줬을 때 무입력 폴백으로 쓰는 공개 데이터 실측 샘플 (1,990개소)
-    ├── industry_baseline.csv     업종별 월 회전율 중앙값 271개 업종. **업종배수 계산에 반드시 필요한 파일** — stability.py가 업종배수를 낼 때 이걸 기준선으로 쓴다
-    └── report_template.md        출력 구조 고정. 출력 전에 이 템플릿을 보고 구조가 맞는지 확인한다
+workplace-workforce-stability-assessment/
+├── api/                          # Vercel Python 서버리스 함수
+│   └── diagnose.py               ← POST /api/diagnose  (251줄)
+├── scripts/                      # 로컬 검증/개발용 스크립트
+│   └── test_nps_search.py        ← NPS API 로컬 테스트 (109줄)
+├── skill/                        # 스킬 패키지 (MABC 제출물)
+│   ├── SKILL.md                  ← 이 파일. 스킬 진입점·원칙·절차·예외
+│   ├── scripts/
+│   │   ├── stability.py          ← 지표 계산. 실행의 중심. 항상 이것으로 숫자를 만든다 (719줄, stdlib only)
+│   │   └── extract_sample.py     ← 원본 공개데이터에서 sample_workplaces.csv·industry_baseline.csv를 재생성할 때만 쓴다 (평소엔 안 씀)
+│   ├── references/
+│   │   ├── metrics.md            ← 지표 정의·임계값·근거·한계를 물을 때 읽는다. 기준이 궁금하면 여기 (197줄)
+│   │   └── (없음 확인)
+│   └── assets/                   ← 고정 데이터
+│       ├── sample_workplaces.csv ← 사용자가 파일 안 줬을 때 무입력 폴백으로 쓰는 공개 데이터 실측 샘플 (1,990개소)
+│       ├── industry_baseline.csv ← 업종별 월 회전율 중앙값 271개 업종. **업종배수 계산에 반드시 필요한 파일** — stability.py가 업종배수를 낼 때 이걸 기준선으로 쓴다
+│       └── report_template.md    ← 출력 구조 고정. 출력 전에 이 템플릿을 보고 구조가 맞는지 확인한다
+├── src/app/                      # Next.js App Router 프론트엔드
+│   ├── page.tsx                  ← 메인 UI (400줄)
+│   ├── layout.tsx                ← 루트 레이아웃·메타·폰트 (29줄)
+│   ├── globals.css               ← Tailwind 4 + 다크모드 (26줄)
+│   ├── favicon.ico               ← 파비콘 (vaiable)
+│   └── api/
+│       └── nps/
+│           └── search/
+│               └── route.ts      ← GET /api/nps/search (NPS API 프록시, 215줄)
+├── .env.example                  ← 환경변수 템플릿 (NPS_API_KEY=***
+├── AGENTS.md                     ← Next.js 에이전트 규칙 (자동 생성)
+├── LICENSE                       ← MIT (MABC 2026-알잘딱깔센)
+├── README.md                     ← "# project-code" (미작성)
+├── diagnose.py                   ← [루트엔 없음 — api/diagnose.py만 존재]
+├── next-env.d.ts                 ← Next 타입 참조 (자동 생성)
+├── next.config.ts                ← NextConfig 빈 객체
+├── package.json                  ← next 16.3.5 / react 19.2.8 / tailwind 4
+├── package-lock.json             ← 락 파일 (6,783줄)
+├── postcss.config.mjs            ← @tailwindcss/postcss 플러그인
+└── tsconfig.json                 ← TS5, path alias @/* → ./src/*
 ```
 
 ---
