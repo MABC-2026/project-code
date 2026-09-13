@@ -1,5 +1,7 @@
 import json
 import os
+import re
+import csv
 import sys
 import tempfile
 import traceback
@@ -111,7 +113,218 @@ class handler(BaseHTTPRequestHandler):
                 self._json_error("JSON 객체 필요", 400)
                 return
 
+            # ── 공공 API 경로: POST 본문에 rows 가 있으면 여기서 처리하고 바로 응답 ──
+            if "rows" in body:
+                _rows = body["rows"]
+                if not isinstance(_rows, list) or len(_rows) == 0:
+                    self._json_error("rows는 비어 있지 않은 배열이어야 합니다", 400)
+                    return
+
+                # ── 검사 ──────────────────────────────────────────────────────────
+                _최대년월 = ""
+                _제외한달 = []
+                for _i, _r in enumerate(_rows):
+                    if not isinstance(_r, dict):
+                        self._json_error("rows의 %d번째 항목이 객체가 아닙니다" % (_i + 1), 400)
+                        return
+                    _사업장명 = (_r.get(u"사업장명") or u"").strip()
+                    _년월 = (_r.get(u"자료생성년월") or u"").strip()
+                    _신규 = _r.get(u"신규취득자수")
+                    _상실 = _r.get(u"상실가입자수")
+                    if not _사업장명 or not _년월:
+                        self._json_error("rows의 %d번째 행에 사업장명·자료생성년월이 필요합니다" % (_i + 1), 400)
+                        return
+                    for _vname, _v in ((u"신규취득자수", _신규), (u"상실가입자수", _상실)):
+                        try:
+                            _iv = int(_v)
+                        except (TypeError, ValueError):
+                            self._json_error("rows의 %d번째 행 %s는 정수여야 합니다" % (_i + 1, _vname), 400)
+                            return
+                        if _iv < 0:
+                            self._json_error("rows의 %d번째 행 %s는 0 이상이어야 합니다" % (_i + 1, _vname), 400)
+                            return
+                    _cnt = _r.get(u"가입자수")
+                    try:
+                        _cnt_i = int(_cnt) if _cnt is not None else 0
+                    except (TypeError, ValueError):
+                        _cnt_i = 0
+                    if _cnt_i <= 0:
+                        _제외한달.append({"년월": _년월, "사업장명": _사업장명})
+                    else:
+                        if _년월 > _최대년월:
+                            _최대년월 = _년월
+                _최신제외 = [e for e in _제외한달 if e["년월"] == _최대년월]
+                if _최신제외:
+                    self._json_error("가장 최신 달(%s)의 가입자수가 0 이하인 행이 있어 진단할 수 없습니다" % _최대년월, 400)
+                    return
+
+                # ── 업종 맞추기 ─────────────────────────────────────────────────────
+                _baseline_names = []
+                try:
+                    with open(BASELINE_PATH, encoding="utf-8-sig", newline="") as _bf:
+                        _brdr = csv.DictReader(_bf)
+                        for _br in _brdr:
+                            _bn = (_br.get(u"업종") or u"").strip()
+                            if _bn:
+                                _baseline_names.append(_bn)
+                except Exception:
+                    _baseline_names = []
+                _norm_cache = {}
+                def _norm_ind(s):
+                    return re.sub(r"[^가-힣a-zA-Z0-9]", "", (s or "")).lower()
+                def _resolve_ind_name(ind):
+                    if ind in _baseline_names:
+                        return ind, True
+                    _n = _norm_ind(ind)
+                    if _n in _norm_cache:
+                        return _norm_cache[_n], True
+                    for _bn in _baseline_names:
+                        if _norm_ind(_bn) == _n:
+                            _norm_cache[_n] = _bn
+                            return _bn, True
+                    _norm_cache[_n] = None
+                    return ind, False
+                _최신원본업종 = None
+                _rows_fixed = []
+                for _r in _rows:
+                    _ind = (_r.get(u"업종") or u"").strip()
+                    if _ind:
+                        _resolved, _matched = _resolve_ind_name(_ind)
+                    else:
+                        _resolved, _matched = _ind, False
+                    _r2 = dict(_r)
+                    if _ind:
+                        _r2[u"업종"] = _resolved
+                    _rows_fixed.append(_r2)
+                    if _r.get(u"자료생성년월", u"").strip() == _최대년월 and _최신원본업종 is None:
+                        _최신원본업종 = _ind
+                _기준선업종명 = None
+                _업종기준선일치 = False
+                _진단행 = None
+                for _r in _rows_fixed:
+                    if (_r.get(u"자료생성년월") or u"").strip() == _최대년월 and (_r.get(u"가입자수") or 0) > 0:
+                        _진단행 = _r
+                        _기준선업종명 = _r.get(u"업종", u"")
+                        _업종기준선일치 = _기준선업종명 in _baseline_names and bool(_기준선업종명)
+                        break
+
+                # ── 진단용 임시 CSV (최신 달 한 행) ──────────────────────────────────
+                _out_YM = u""
+                _out_SEASON = False
+                _out_BASE_SRC = u""
+                _out_진단결과 = {}
+                if _진단행:
+                    _진단텀프 = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False,
+                                                            encoding="utf-8-sig", newline="")
+                    _진단fname = _진단텀프.name
+                    _w = csv.writer(_진단텀프)
+                    _w.writerow([u"자료생성년월", u"사업장명", u"업종", u"시도", u"사업장형태",
+                                 u"가입자수", u"당월고지금액", u"신규취득자수", u"상실가입자수"])
+                    _w.writerow([
+                        _진단행.get(u"자료생성년월", u""),
+                        _진단행.get(u"사업장명", u""),
+                        _진단행.get(u"업종", u""),
+                        _진단행.get(u"시도", u""),
+                        _진단행.get(u"사업장형태", u""),
+                        _진단행.get(u"가입자수", 0),
+                        _진단행.get(u"당월고지금액", 0),
+                        _진단행.get(u"신규취득자수", 0),
+                        _진단행.get(u"상실가입자수", 0),
+                    ])
+                    _진단텀프.close()
+                    try:
+                        (_d_rows, _d_analyzed, _d_base, _d_allmed, _d_YM, _d_SEASON,
+                         _d_dropped, _d_enc, _d_BASE_SRC, _d_result_list) = run(
+                            path=_진단fname, company=_진단행.get(u"사업장명", u""))
+                        _out_YM = _d_YM
+                        _out_SEASON = bool(_d_SEASON)
+                        _out_BASE_SRC = _d_BASE_SRC
+                        if _d_result_list:
+                            _out_진단결과 = _build_diagnosis_dict(_d_result_list[0], _d_base, _d_allmed)
+                    finally:
+                        try:
+                            os.unlink(_진단fname)
+                        except OSError:
+                            pass
+                        _진단fname = None
+
+                # ── 추이용 임시 CSV (전체 행, 가입자수>0만) ──────────────────────────
+                _추이 = []
+                _유효행 = [r for r in _rows_fixed if (r.get(u"가입자수") or 0) > 0]
+                if _유효행:
+                    _추이텀프 = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False,
+                                                            encoding="utf-8-sig", newline="")
+                    _추이fname = _추이텀프.name
+                    _w2 = csv.writer(_추이텀프)
+                    _w2.writerow([u"자료생성년월", u"사업장명", u"업종", u"시도", u"사업장형태",
+                                  u"가입자수", u"당월고지금액", u"신규취득자수", u"상실가입자수"])
+                    for _r in _유효행:
+                        _w2.writerow([
+                            _r.get(u"자료생성년월", u""),
+                            _r.get(u"사업장명", u""),
+                            _r.get(u"업종", u""),
+                            _r.get(u"시도", u""),
+                            _r.get(u"사업장형태", u""),
+                            _r.get(u"가입자수", 0),
+                            _r.get(u"당월고지금액", 0),
+                            _r.get(u"신규취득자수", 0),
+                            _r.get(u"상실가입자수", 0),
+                        ])
+                    _추이텀프.close()
+                    try:
+                        (_t_rows, _t_analyzed, _t_base, _t_allmed, _t_YM, _t_SEASON,
+                         _t_dropped, _t_enc, _t_BASE_SRC, _t_result_list) = run(path=_추이fname)
+                        _by_month = {}
+                        for _r in _t_rows:
+                            _ym = _r.get(u"년월", u"")
+                            if not _ym:
+                                continue
+                            if _ym not in _by_month:
+                                _by_month[_ym] = {"가입자수": 0, "신규": 0, "상실": 0}
+                            _by_month[_ym]["가입자수"] += _r.get(u"가입자수", 0)
+                            _by_month[_ym]["신규"] += _r.get(u"신규", 0)
+                            _by_month[_ym]["상실"] += _r.get(u"상실", 0)
+                        for _ym in sorted(_by_month.keys()):
+                            _d = _by_month[_ym]
+                            _순증감 = _d["신규"] - _d["상실"]
+                            _총이동 = _d["신규"] + _d["상실"]
+                            _회전 = round(_총이동 / 2.0 / _d["가입자수"], 6) if _d["가입자수"] > 0 else 0.0
+                            _추이.append({
+                                "자료년월": _ym,
+                                "가입자수": _d["가입자수"],
+                                "신규": _d["신규"],
+                                "상실": _d["상실"],
+                                "순증감": _순증감,
+                                "총이동": _총이동,
+                                "월회전율": _회전,
+                            })
+                    finally:
+                        try:
+                            os.unlink(_추이fname)
+                        except OSError:
+                            pass
+                        _추이fname = None
+
+                # ── 응답 ──────────────────────────────────────────────────────────
+                out = {
+                    "ok": True,
+                    "입력_출처": u"공공데이터 API",
+                    "자료년월": _out_YM,
+                    "계절성주의": _out_SEASON,
+                    "기준선출처": _out_BASE_SRC,
+                    "업종기준선_일치": _업종기준선일치,
+                    "기준선_업종명": _기준선업종명 if _업종기준선일치 else None,
+                    "원본_업종명": _최신원본업종 or u"",
+                    "진단결과": _out_진단결과,
+                    "추이": _추이,
+                    "제외한달": _제외한달,
+                    "안내문": u"본 수치는 공식 통계가 아니라 조회 시점의 행정 기록입니다",
+                }
+                self._json_response(out, 200)
+                return
+
             company = (body.get("company") or "").strip()
+
             csv_path_raw = (body.get("csvPath") or "").strip()
             top = body.get("top")
             pick = body.get("pick")

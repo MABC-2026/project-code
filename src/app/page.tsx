@@ -192,6 +192,10 @@ export default function Home() {
   }, [top, callApi]);
 
   const fmtNum = (n: number) => n.toLocaleString("ko-KR");
+  const fmtPercentRatio = (ratio: number) => (ratio * 100).toFixed(1) + "%";
+  const fmtPercentValue = (pct: number) => pct.toFixed(1) + "%";
+  const fmtMultiple = (n: number) => n.toFixed(1) + "배";
+  const fmtSuppressed = (n: number) => n.toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + "배";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-50 p-6">
@@ -287,13 +291,13 @@ export default function Home() {
             <dt className="text-zinc-500">당월 순증감</dt>
             <dd className="text-zinc-900">{result.순증감 >= 0 ? "+" : ""}{result.순증감}명</dd>
             <dt className="text-zinc-500">당월 총이동 (신규+상실)</dt>
-            <dd className="text-zinc-900">{result.총이동}명 (신규 {result.신규} / 상실 {result.상실})</dd>
+            <dd className="text-zinc-900">{fmtNum(result.총이동)}명 (신규 {fmtNum(result.신규)} / 상실 {fmtNum(result.상실)})</dd>
             <dt className="text-zinc-500">월 회전율</dt>
-            <dd className="text-zinc-900">{result.월회전율 * 100}% (연환산 {result.연월연환산회전율}%)</dd>
+            <dd className="text-zinc-900">{fmtPercentRatio(result.월회전율)} (연환산 {fmtPercentValue(result.연환산회전율)})</dd>
             <dt className="text-zinc-500">은폐지수</dt>
-            <dd className="text-zinc-900 font-medium">{result.은폐지수}배 — 총원 변화 {result.순증감 >= 0 ? "+" : ""}{result.순증감}명 뒤에 {result.총이동}명이 오갔습니다</dd>
+            <dd className="text-zinc-900 font-medium">{fmtSuppressed(result.은폐지수)} — 총원 변화 {result.순증감 >= 0 ? "+" : ""}{fmtNum(result.순증감)}명 뒤에 {fmtNum(result.총이동)}명이 오갔습니다</dd>
             <dt className="text-zinc-500">업종 내 상대 위치</dt>
-            <dd className="text-zinc-900">업종 중앙값의 {result.업종배수}배</dd>
+            <dd className="text-zinc-900">업종 중앙값의 {fmtMultiple(result.업종배수)}</dd>
             {result.추정소득 !== null && (
               <>
                 <dt className="text-zinc-500">추정 평균 기준소득월액</dt>
@@ -314,17 +318,42 @@ export default function Home() {
           <div className="mt-4 space-y-4 text-sm">
             <div className="space-y-1">
               <p className="font-medium text-zinc-900">① 순증감 대 총이동 (같은 축척, 총이동 기준)</p>
-              <div className="whitespace-pre rounded bg-zinc-100 p-2 font-mono text-xs leading-relaxed text-zinc-800">
-                겉으로 보이는 변화 (순증감)   |{bar(result.순증감, result.총이동 || 1, 40)} {result.순증감 >= 0 ? "+" : ""}{result.순증감}명
-                실제로 오간 사람  (총이동)    |{bar(result.총이동, result.총이동 || 1, 40)} {result.총이동}명
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-40 flex-shrink-0 truncate text-zinc-800">겉으로 보이는 변화 (순증감)</span>
+                  <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
+                    <div className="h-full bg-zinc-400 rounded" style={{ width: `${Math.abs(result.순증감) / (result.총이동 || 1) * 100}%` }} />
+                  </div>
+                  <span className="w-24 flex-shrink-0 text-right text-zinc-800">{result.순증감 >= 0 ? "+" : ""}{fmtNum(result.순증감)}명</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-40 flex-shrink-0 truncate text-zinc-800">실제로 오간 사람 (총이동)</span>
+                  <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
+                    <div className="h-full bg-zinc-900 rounded" style={{ width: "100%" }} />
+                  </div>
+                  <span className="w-24 flex-shrink-0 text-right text-zinc-800">{fmtNum(result.총이동)}명</span>
+                </div>
               </div>
             </div>
             <div className="space-y-1">
               <p className="font-medium text-zinc-900">② 업종 대비 (업종 중앙값 대비 막대)</p>
-              <div className="whitespace-pre rounded bg-zinc-100 p-2 font-mono text-xs leading-relaxed text-zinc-800">
-                업종 중앙값    {result.업종중앙값 * 100}%  |{bar(result.업종중앙값, Math.max(result.월회전율, result.업종중앙값), 40)}
-                이 사업장     {result.월회전율 * 100}%  |{bar(result.월회전율, Math.max(result.월회전율, result.업종중앙값), 40)}  업종 중앙값의 {result.업종배수}배
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-40 flex-shrink-0 truncate text-zinc-800">업종 중앙값</span>
+                  <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
+                    <div className="h-full bg-zinc-400 rounded" style={{ width: `${result.업종중앙값 / Math.max(result.월회전율, result.업종중앙값) * 100}%` }} />
+                  </div>
+                  <span className="w-24 flex-shrink-0 text-right text-zinc-800">{fmtPercentRatio(result.업종중앙값)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-40 flex-shrink-0 truncate text-zinc-800">이 사업장</span>
+                  <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
+                    <div className="h-full bg-zinc-900 rounded" style={{ width: `${result.월회전율 / Math.max(result.월회전율, result.업종중앙값) * 100}%` }} />
+                  </div>
+                  <span className="w-24 flex-shrink-0 text-right text-zinc-800">{fmtPercentRatio(result.월회전율)}</span>
+                </div>
               </div>
+              <p className="text-zinc-500 text-xs mt-1">업종 중앙값의 {fmtMultiple(result.업종배수)}</p>
             </div>
             {result.업종내위치 && (
               <p className="text-zinc-700">업종 내 위치: {result.업종내위치}</p>
@@ -333,13 +362,13 @@ export default function Home() {
 
           <div className="mt-4 text-sm text-zinc-600">
             {result.순증감 === 0
-              ? `- 겉으로 보이는 총원 변화는 ${result.순증감 >= 0 ? "+" : ""}${result.순증감}명으로 거의 없지만, 실제로는 ${result.총이동}명(${result.신규}명 들어오고 ${result.상실}명 나감)이 오갔습니다.`
-              : `- 당월 총원은 ${result.순증감 >= 0 ? "+" : ""}${result.순증감}명 변했지만, 그 사이에 ${result.총이동}명(${result.신규}명 유입·${result.상실}명 유출)이 사업장을 오갔습니다.`
+              ? `- 겉으로 보이는 총원 변화는 ${result.순증감 >= 0 ? "+" : ""}${fmtNum(result.순증감)}명으로 거의 없지만, 실제로는 ${fmtNum(result.총이동)}명(${fmtNum(result.신규)}명 들어오고 ${fmtNum(result.상실)}명 나감)이 오갔습니다.`
+              : `- 당월 총원은 ${result.순증감 >= 0 ? "+" : ""}${fmtNum(result.순증감)}명 변했지만, 그 사이에 ${fmtNum(result.총이동)}명(${fmtNum(result.신규)}명 유입·${fmtNum(result.상실)}명 유출)이 사업장을 오갔습니다.`
             }
             <br />
-            - 이 사업장의 월 회전율 {result.월회전율 * 100}%는 업종 중앙값 {result.업종중앙값 * 100}%의 {result.업종배수}배로, 같은 업종 평균보다 {result.업종배수 >= 1.5 ? "빠르다" : "비슷하거나 느리다"}.
+            - 이 사업장의 월 회전율 {fmtPercentRatio(result.월회전율)}는 업종 중앙값 {fmtPercentRatio(result.업종중앙값)}의 {fmtMultiple(result.업종배수)}로, 같은 업종 평균보다 {result.업종배수 >= 1.5 ? "빠릅니다" : "비슷하거나 느립니다"}.
             <br />
-            - 은폐지수가 {result.은폐지수}배라는 것은 총원 변화 {result.순증감 >= 0 ? "+" : ""}${result.순증감}명 뒤에 실제로는 ${result.총이동}명이 움직였다는 뜻입니다.
+            - 은폐지수가 {fmtSuppressed(result.은폐지수)}라는 것은 총원 변화 {result.순증감 >= 0 ? "+" : ""}{fmtNum(result.순증감)}명 뒤에 실제로는 {fmtNum(result.총이동)}명이 움직였다는 뜻입니다.
           </div>
 
           <button
@@ -368,7 +397,7 @@ export default function Home() {
             <dt className="text-zinc-500">자료년월</dt>
             <dd className="text-zinc-900">{report.자료년월} {report.계절성주의 ? "⚠️ 공공기관 정기 인사이동 시기" : ""}</dd>
             <dt className="text-zinc-500">월 회전율 중앙값</dt>
-            <dd className="text-zinc-900">{report.summary.월회전율중앙값 * 100}% (연환산 {report.summary.연월연환산중앙값}%)</dd>
+            <dd className="text-zinc-900">{fmtPercentRatio(report.summary.월회전율중앙값)} (연환산 {fmtPercentValue(report.summary.연환산중앙값)})</dd>
             <dt className="text-zinc-500">총원 그대로인데 대량 이동</dt>
             <dd className="text-zinc-900">{report.summary.총원은그대로대량이동_개수}개소 ({report.summary.총원은그대로대량이동_비율}%)</dd>
             <dt className="text-zinc-500">해석 주의 사업장</dt>
@@ -378,7 +407,7 @@ export default function Home() {
             <dt className="text-zinc-500">업종 기준선 수</dt>
             <dd className="text-zinc-900">{report.업종기준선개수}개 업종</dd>
             <dt className="text-zinc-500">업종 간 편차 배수</dt>
-            <dd className="text-zinc-900">{report.업종간편차배수}배</dd>
+            <dd className="text-zinc-900">{fmtMultiple(report.업종간편차배수)}</dd>
           </dl>
 
           <div className="mt-4">
@@ -402,10 +431,10 @@ export default function Home() {
                       <td className="py-1 pr-2 font-medium text-zinc-900">{r.사업장명}</td>
                       <td className="py-1 pr-2 text-zinc-600">{r.업종}</td>
                       <td className="text-right py-1 pr-2 text-zinc-900">{fmtNum(r.가입자수)}</td>
-                      <td className="text-right py-1 pr-2 text-zinc-900">{r.순증감 >= 0 ? "+" : ""}{r.순증감}</td>
-                      <td className="text-right py-1 pr-2 text-zinc-900">{r.총이동}</td>
-                      <td className="text-right py-1 pr-2 font-medium text-zinc-900">{r.업종배수}배</td>
-                      <td className="text-right py-1 text-zinc-900">{r.은폐지수}배</td>
+                      <td className="text-right py-1 pr-2 text-zinc-900">{r.순증감 >= 0 ? "+" : ""}{fmtNum(r.순증감)}</td>
+                      <td className="text-right py-1 pr-2 text-zinc-900">{fmtNum(r.총이동)}</td>
+                      <td className="text-right py-1 pr-2 font-medium text-zinc-900">{fmtMultiple(r.업종배수)}</td>
+                      <td className="text-right py-1 text-zinc-900">{fmtSuppressed(r.은폐지수)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -435,9 +464,9 @@ export default function Home() {
                       <td className="py-1 pr-2 font-medium text-zinc-900">{r.사업장명}</td>
                       <td className="py-1 pr-2 text-zinc-600">{r.업종}</td>
                       <td className="text-right py-1 pr-2 text-zinc-900">{fmtNum(r.가입자수)}</td>
-                      <td className="text-right py-1 pr-2 text-zinc-900">{r.월회전율}%</td>
-                      <td className="text-right py-1 pr-2 text-zinc-900">{r.업종중앙값}%</td>
-                      <td className="text-right py-1 font-medium text-zinc-900">{r.배수}배</td>
+                      <td className="text-right py-1 pr-2 text-zinc-900">{fmtPercentValue(r.월회전율)}</td>
+                      <td className="text-right py-1 pr-2 text-zinc-900">{fmtPercentValue(r.업종중앙값)}</td>
+                      <td className="text-right py-1 font-medium text-zinc-900">{fmtMultiple(r.배수)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -473,26 +502,3 @@ export default function Home() {
   );
 }
 
-function bar(value: number, maxValue: number, width = 40): string {
-  if (maxValue <= 0) return " ".repeat(width);
-  const v = Math.abs(value);
-  if (v <= 0) return " ".repeat(width);
-  const frac = v / maxValue * width;
-  const full = Math.floor(frac);
-  const rem = frac - full;
-  const parts: string[] = [];
-  for (let i = 0; i < full; i++) parts.push("\u2588");
-  if (full < width) {
-    const r8 = Math.round(rem * 8);
-    if (r8 === 0) {
-      // 없음
-    } else if (r8 === 8) {
-      parts.push("\u2588");
-    } else {
-      parts.push(String.fromCharCode(0x258F - r8 + 1));
-    }
-  }
-  parts.length = Math.min(parts.length, width);
-  const out = parts.join("");
-  return out + " ".repeat(width - out.length);
-}
