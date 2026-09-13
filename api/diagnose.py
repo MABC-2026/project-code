@@ -141,6 +141,23 @@ class handler(BaseHTTPRequestHandler):
             if company:
                 cand = list(result_list)
                 cand = cand[:10]
+                # pick 이 유효하면 해당 후보를 바로 진단한다 (page.tsx handlePick 대응).
+                if pick is not None and 1 <= pick <= len(cand):
+                    out = {
+                        "ok": True,
+                        "입력_샘플시연": is_sample,
+                        "검색결과_건수": len(cand),
+                        "자료년월": YM,
+                        "계절성주의": bool(SEASON),
+                        "기준선출처": BASE_SRC,
+                        "분석대상수": len(analyzed),
+                        "전체행수": len(rows),
+                        "제외행수": dropped,
+                        "업종기준선개수": len(base),
+                    }
+                    out["진단결과"] = _build_diagnosis_dict(cand[pick - 1], base, allmed)
+                    self._json_response(out, 200)
+                    return
                 out = {
                     "ok": True,
                     "입력_샘플시연": is_sample,
