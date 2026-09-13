@@ -694,3 +694,6 @@ def main() :
     with open("employer_stability_report.md", "w", encoding="utf-8") as f:
         f.write(report + "\n")
     print("\n리포트 저장: employer_stability_report.md  (인코딩 감지: %s)" % enc)
+
+if __name__ == "__main__":
+    main()
