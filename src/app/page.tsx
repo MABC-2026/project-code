@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import TrendTable from "@/components/TrendTable";
 import ExplainCard from "@/components/ExplainCard";
+import AgentSteps, { type AgentStep } from "@/components/AgentSteps";
 import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -30,6 +31,19 @@ export default function Home() {
   const [compareList, setCompareList] = useState<CompareEntry[]>([]);
   const [explain, setExplain] = useState<{ loading: boolean; error: string | null; data: any }>({ loading: false, error: null, data: null });
   const explainSeq = useRef(0);
+  const [steps, setSteps] = useState<AgentStep[]>([]);
+  // 같은 단계의 마지막 기록이 "진행"이면 그 기록을 새 상태로 바꾸고, 아니면 새 기록을 붙인다
+  const logStep = useCallback((단계: string, 상태: AgentStep["상태"], 내용: string) => {
+    setSteps((prev) => {
+      const i = prev.map((s) => s.단계).lastIndexOf(단계);
+      if (i >= 0 && prev[i].상태 === "진행") {
+        const next = [...prev];
+        next[i] = { 단계, 상태, 내용 };
+        return next;
+      }
+      return [...prev, { 단계, 상태, 내용 }];
+    });
+  }, []);
   const [resultMeta, setResultMeta] = useState<{
     입력_출처?: string;
     자료년월?: string;
@@ -53,8 +67,8 @@ export default function Home() {
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       let detail = "";
-      try { detail = JSON.parse(txt).error || txt; } catch { detail = txt; }
-      throw new Error(detail || `HTTP ${res.status}`);
+      try { detail = JSON.parse(txt).error || ""; } catch { detail = ""; }
+      throw new Error(detail || `진단 서버 응답 오류 (HTTP ${res.status})`);
     }
     return res.json();
   }, []);
@@ -62,6 +76,7 @@ export default function Home() {
   const requestExplain = useCallback(async (diag: any, meta: any) => {
     const id = ++explainSeq.current;
     setExplain({ loading: true, error: null, data: null });
+    logStep("해설", "진행", "Solar Pro 4가 계산 결과를 읽고 지원자 관점 해설을 쓰고 있어요");
     try {
       const res = await fetch("/api/explain", {
         method: "POST",
@@ -71,8 +86,10 @@ export default function Home() {
       const j = await res.json().catch(() => null);
       if (!res.ok || !j?.ok) throw new Error(j?.사유 || `HTTP ${res.status}`);
       if (id === explainSeq.current) setExplain({ loading: false, error: null, data: j });
+      if (id === explainSeq.current) logStep("해설", "완료", `사실 ${(j.사실목록 || []).length}개를 근거로 ${((j.소요ms || 0) / 1000).toFixed(1)}초 만에 썼어요` + (j.걸러낸문장수 ? ` · 기준에 안 맞는 문장 ${j.걸러낸문장수}개는 뺐어요` : ""));
     } catch (e: any) {
       if (id === explainSeq.current) setExplain({ loading: false, error: e.message || "해설 요청 실패", data: null });
+      if (id === explainSeq.current) logStep("해설", "주의", `해설을 쓰지 못했어요 (${e.message || "해설 요청 실패"})`);
     }
   }, []);
 
@@ -97,8 +114,8 @@ export default function Home() {
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       let detail = "";
-      try { detail = JSON.parse(txt).error || txt; } catch { detail = txt; }
-      throw new Error(detail || `HTTP ${res.status}`);
+      try { detail = JSON.parse(txt).error || ""; } catch { detail = ""; }
+      throw new Error(detail || `검색 서버 응답 오류 (HTTP ${res.status})`);
     }
     return res.json();
   }, []);
@@ -135,7 +152,9 @@ export default function Home() {
     setLoadingText(null);
     try {
       setLoadingText("공공데이터에서 사업장을 찾는 중입니다 (10초 정도 걸립니다)");
-      // 1단계: 공공데이터포털 NPS API로 실제 사업장명 검색
+      setSteps([]);
+      logStep("검색", "진행", `공공데이터에서 '${company.trim()}' 이름이 들어간 사업장을 찾고 있어요`);
+        // 1단계: 공공데이터포털 NPS API로 실제 사업장명 검색
       let npsResult: { items?: Array<{ seq?: number; wkplNm?: string; wkplRoadNmDtlAddr?: string; bzowrRgstNo?: string; dataCrtYm?: string; wkplJnngStcd?: string; 가입자수?: number | null; 업종?: string | null }>; totalCount?: number; error?: string } | null = null;
       try {
         npsResult = await callNpsSearch(company);
@@ -144,6 +163,9 @@ export default function Home() {
       }
 
       if (npsResult && npsResult.items && npsResult.items.length > 0) {
+      const 검색어들: string[] = (npsResult as any).검색어 || [];
+      const 한글읽기 = 검색어들.find((q) => q !== company.trim() && !q.includes("주식회사") && !q.includes("(주)"));
+      logStep("검색", "완료", `후보 ${npsResult.items.length}곳을 찾았어요 · 법인 표기를 바꿔 ${검색어들.length}가지로 찾았어요` + (한글읽기 ? ` · ‘${company.trim()}’ → ‘${한글읽기}’로도 찾았어요` : ""));
         setCandidates(
           npsResult.items.map((it, i) => ({
             번호: i + 1,
@@ -168,6 +190,7 @@ export default function Home() {
       }
 
       // NPS 결과 없음 → CSV 파일에서 직접 검색
+      logStep("검색", "주의", "공공데이터 검색에서 찾지 못해 동봉 데이터(2026-07, 52,957곳)에서 찾아요");
       const data = await callApi({ company, csvPath: "sample_workplaces.csv" });
       if (!data.ok) throw new Error(data.error || "응답 이상");
       if (data.회사_미발견) {
@@ -200,7 +223,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [company, callApi, callNpsSearch]);
+  }, [company, callApi, callNpsSearch, logStep]);
 
   const handlePick = useCallback(async (번호: number) => {
     const c = candidates.find((c) => c.번호 === 번호);
@@ -217,6 +240,8 @@ export default function Home() {
     try {
       if (c.source === "nps") {
         setLoadingText("최근 12개월 국민연금 자료를 불러오는 중입니다 (5초 정도 걸립니다)");
+        setSteps((prev) => prev.filter((s) => s.단계 === "검색"));
+        logStep("수집", "진행", `‘${c.사업장명}’의 최근 12개월 국민연금 기록을 모으고 있어요`);
         const wpParams = new URLSearchParams({
           name: c.사업장명,
           bizno: c.bzowrRgstNo || "",
@@ -238,14 +263,21 @@ export default function Home() {
           }
           workplaceRows = wpJson.rows;
           workplaceFailedMonths = wpJson.실패한달;
+          logStep("수집", "완료", `${(wpJson.rows || []).length}개월 기록을 받았어요 · 공공 API ${wpJson.api호출수 ?? "?"}번 호출` + ((wpJson.실패한달 || []).length > 0 ? ` · 못 받은 달 ${(wpJson.실패한달 || []).length}개` : ""));
         } catch (wpErr: any) {
-          workplaceFailReason = wpErr.message || "공공데이터 조회 실패";
+          workplaceFailReason = "12개월 기록 수집 실패 — " + (wpErr.message || "공공데이터 조회 실패");
+          logStep("수집", "주의", workplaceFailReason);
         }
 
         if (workplaceRows) {
           try {
+            logStep("계산", "진행", "예선 스킬(stability.py)로 회전율을 계산하고 같은 업종 기준선과 비교하고 있어요");
             const diagData = await callApi({ rows: workplaceRows });
             if (diagData.진단결과) {
+              const 월회전율글자 = (diagData.진단결과.월회전율 * 100).toFixed(1);
+              logStep("계산", "완료", diagData.진단결과.업종위치
+                ? `같은 업종 ${diagData.진단결과.업종위치.비교사업장수}곳과 비교했어요 · 월 회전율 ${월회전율글자}%`
+                : `업종 기준선에 없는 업종이라 업종 비교는 뺐어요 · 월 회전율 ${월회전율글자}%`);
               setResult(diagData.진단결과);
               setResultMeta({
                 입력_출처: diagData.입력_출처,
@@ -262,12 +294,14 @@ export default function Home() {
               return;
             }
           } catch (diagErr: any) {
-            workplaceFailReason = diagErr.message || "진단 요청 실패";
+            workplaceFailReason = "진단 계산 실패 — " + (diagErr.message || "진단 요청 실패");
+            logStep("계산", "주의", workplaceFailReason);
           }
         }
 
         // workplace 실패 또는 진단 실패 → 샘플 진단 도우미로 대체
         if (workplaceFailReason) {
+          logStep("계산", "진행", "동봉 데이터(2026-07)로 대신 계산하고 있어요");
           const sampleResult = await sampleDiagnose(c.사업장명);
           if (sampleResult && sampleResult !== "없음") {
             setResult(sampleResult);
@@ -277,9 +311,10 @@ export default function Home() {
               대체사유: workplaceFailReason,
             });
             setPhase("result");
+            setSteps((prev) => prev.map((s) => (s.단계 === "계산" && s.상태 === "진행" ? { ...s, 상태: "완료" as const, 내용: "동봉 데이터(2026-07)로 계산을 마쳤어요" } : s)));
             return;
           }
-          setError(`공공데이터 조회에 실패했고(${workplaceFailReason}), 동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)에도 없는 사업장입니다.`);
+          setError(`공공데이터로 진단하지 못했어요 (${workplaceFailReason}). 동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)에도 없는 사업장이에요.`);
           setPhase("search");
           return;
         }
@@ -287,6 +322,8 @@ export default function Home() {
 
       // CSV 후보: 샘플 진단 도우미 사용
       if (c.source === "csv") {
+        setSteps((prev) => prev.filter((s) => s.단계 === "검색"));
+        logStep("계산", "진행", "동봉 데이터(2026-07)에서 계산하고 있어요");
         const sampleResult = await sampleDiagnose(c.사업장명);
         if (sampleResult && sampleResult !== "없음") {
           setResult(sampleResult);
@@ -295,6 +332,7 @@ export default function Home() {
               계절성주의: true,
             });
           setPhase("result");
+          setSteps((prev) => prev.map((s) => (s.단계 === "계산" && s.상태 === "진행" ? { ...s, 상태: "완료" as const, 내용: "동봉 데이터(2026-07)로 계산을 마쳤어요" } : s)));
           return;
         }
         setError(`${c.사업장명}은(는) 동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)에 없는 사업장입니다.`);
@@ -310,13 +348,14 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [company, callApi, candidates, sampleDiagnose]);
+  }, [company, callApi, candidates, sampleDiagnose, logStep]);
 
   const handleShowReport = useCallback(async () => {
     setLoading(true);
     setError(null);
     setPhase("search");
     try {
+      setSteps([]);
       const data = await callApi({ csvPath: "sample_workplaces.csv", top });
       if (!data.ok) throw new Error(data.error || "응답 이상");
       setReport(data);
@@ -338,9 +377,9 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-50 p-6">
-      <h1 className="text-2xl font-semibold text-zinc-900">사업장 인력 안정성 진단</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900 text-center">이 회사, 사람이 얼마나 자주 바뀔까요?</h1>
       <p className="text-zinc-500 text-center max-w-md">
-        국민연금공단 가입 사업장 내역(공공데이터) 기준, 사업장별 인력 안정성 지표를 계산합니다.
+        국민연금 가입 기록으로 최근 12개월 동안 사람이 얼마나 들어오고 나갔는지 보여주고, 같은 업종과 비교해 쉽게 풀어드려요.
       </p>
 
       {error && (
@@ -352,7 +391,8 @@ export default function Home() {
         <p className="text-xs text-zinc-500">찾는 회사가 없나요? <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-600 underline">'{company.trim()}' 법인명 검색해 보기 ↗</a></p>
       )}
 
-      {loading && loadingText && (
+      {loading && steps.length > 0 && <AgentSteps steps={steps} />}
+      {loading && steps.length === 0 && loadingText && (
         <p className="text-zinc-400 text-sm">{loadingText}</p>
       )}
 
@@ -444,8 +484,8 @@ export default function Home() {
           <h2 className="mb-1 text-lg font-semibold text-zinc-900">{result.사업장명}</h2>
           {resultMeta?.대체사유 ? (
             <div className="mt-1 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-700">
-              공공데이터 조회에 실패해 동봉 데이터(2026-07)로 보여드립니다 — 사유: {resultMeta.대체사유}
-            </div>
+                공공데이터로 진단하지 못해 동봉 데이터(2026-07)로 보여드려요 — 사유: {resultMeta.대체사유}
+              </div>
           ) : null}
           <p className="text-sm text-zinc-500 mt-1">
             {resultMeta?.입력_출처 === "공공데이터" || resultMeta?.입력_출처 === "공공데이터 API"
@@ -455,6 +495,7 @@ export default function Home() {
           {resultMeta?.계절성주의 && (
             <p className="text-sm text-zinc-600 mt-1">7월·1월 자료는 공공기관 정기 인사이동이 섞여 회전율이 높게 나올 수 있습니다</p>
           )}
+          <AgentSteps steps={steps} compact />
           <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} />
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
