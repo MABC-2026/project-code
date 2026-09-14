@@ -33,6 +33,7 @@ interface DetailItem {
   crrmmNtcAmt?: string;
   nwAcqzrCnt?: string;
   lssJnngpCnt?: string;
+  adptDt?: string;
 }
 
 interface StatusItem {
@@ -110,6 +111,7 @@ export async function GET(req: NextRequest) {
   const name = searchParams.get("name");
   const bizno = searchParams.get("bizno");
   const addr = searchParams.get("addr");
+  const seq = searchParams.get("seq");
 
   if (!name || name.trim().length === 0) {
     return NextResponse.json(
@@ -212,20 +214,94 @@ export async function GET(req: NextRequest) {
     byMonth.get(m)!.push(it);
   }
 
+  // 기준 적용일을 정하지 않은 상태
+  let baseAdptDt: string | null = null;
+
+  // 기준 기록을 정한다: 가장 최신 달의 기록 중에서
+  const latestKey = [...byMonth.keys()].sort().slice(-1)[0];
+  const latestMonthItems = byMonth.get(latestKey) || [];
+  let baseItem: Item | undefined;
+
+  if (seq && latestMonthItems.some((it) => String(it.seq) === seq)) {
+    baseItem = latestMonthItems.find((it) => String(it.seq) === seq);
+  } else if (addr) {
+    baseItem = latestMonthItems.find((it) => it.wkplRoadNmDtlAddr === addr);
+  }
+  if (!baseItem && latestMonthItems.length > 0) {
+    baseItem = latestMonthItems[0];
+  }
+
+  const hasMultipleInAnyMonth = Array.from(byMonth.values()).some((items) => items.length > 1);
+
+  // 기록이 여러 개인 달이 하나라도 있으면 기준 적용일을 얻는다
+  if (hasMultipleInAnyMonth && baseItem) {
+    try {
+      apiCallCount++;
+      const baseUrl = `${DETAIL_URL}?seq=${baseItem.seq}&dataType=json&serviceKey=${apiKey}`;
+      const baseData = await fetchJson(baseUrl, 8000);
+      const baseDetail = extractDetailItems(baseData)[0];
+      if (baseDetail && baseDetail.adptDt) {
+        baseAdptDt = baseDetail.adptDt;
+      }
+    } catch {
+      // 기준 적용일 조회 실패 — 그대로 진행 (적용일은 null)
+    }
+  }
+
   const selectedItems = new Map<string, Item>();
 
   for (const [month, items] of byMonth.entries()) {
     if (items.length === 1) {
+      // 기록이 하나뿐인 달은 상세 조회 추가 없이 그대로 사용
       selectedItems.set(month, items[0]);
     } else {
-      const match = items.find((it) => it.wkplRoadNmDtlAddr === addr);
-      if (match) {
-        selectedItems.set(month, match);
+      // 기록이 여러 개인 달: seq로 상세 조회를 동시에 불러 기준 적용일과 같은 것을 고른다
+      const detailPromises = items.map(async (it) => {
+        try {
+          apiCallCount++;
+          const url = `${DETAIL_URL}?seq=${it.seq}&dataType=json&serviceKey=${apiKey}`;
+          const data = await fetchJson(url, 8000);
+          const detail = extractDetailItems(data)[0];
+          return { seq: it.seq, adptDt: detail?.adptDt ?? null };
+        } catch {
+          return { seq: it.seq, adptDt: null };
+        }
+      });
+      const resolved = await Promise.all(detailPromises);
+
+      if (baseAdptDt) {
+        const match = resolved.find((r) => r.adptDt === baseAdptDt);
+        if (match) {
+          const item = items.find((it) => it.seq === match.seq);
+          if (item) {
+            selectedItems.set(month, item);
+          } else {
+            failedMonths.push({
+              자료년월: formatMonth(month),
+              사유: "같은 이름·사업자번호 사업장이 여러 곳이라 구분하지 못함",
+            });
+          }
+        } else {
+          failedMonths.push({
+            자료년월: formatMonth(month),
+            사유: "같은 이름·사업자번호 사업장이 여러 곳이라 구분하지 못함",
+          });
+        }
       } else {
-        failedMonths.push({
-          자료년월: formatMonth(month),
-          사유: `동일 월 내 여러 항목이 있고 주소(${addr})와 일치하는 항목이 없음`,
-        });
+        // 기준 적용일을 구하지 못했으면 주소가 addr과 같은 첫 기록 (없으면 첫 기록)
+        if (addr) {
+          const match = items.find((it) => it.wkplRoadNmDtlAddr === addr);
+          if (match) {
+            selectedItems.set(month, match);
+          } else {
+            failedMonths.push({
+              자료년월: formatMonth(month),
+              사유: "같은 이름·사업자번호 사업장이 여러 곳이라 구분하지 못함",
+            });
+          }
+        } else {
+          selectedItems.set(month, items[0]);
+        }
       }
     }
   }
@@ -339,5 +415,6 @@ export async function GET(req: NextRequest) {
     rows,
     실패한달: [...failedMonths, ...monthFailures].sort((a, b) => a.자료년월.localeCompare(b.자료년월)),
     api호출수: apiCallCount,
+    적용일: baseAdptDt,
   });
 }
