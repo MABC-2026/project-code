@@ -103,7 +103,7 @@ export default function Home() {
     try {
       setLoadingText("공공데이터에서 사업장을 찾는 중입니다 (10초 정도 걸립니다)");
       // 1단계: 공공데이터포털 NPS API로 실제 사업장명 검색
-      let npsResult: { items?: Array<{ seq?: number; wkplNm?: string; wkplRoadNmDtlAddr?: string; bzowrRgstNo?: string; dataCrtYm?: string; wkplJnngStcd?: string }>; totalCount?: number; error?: string } | null = null;
+      let npsResult: { items?: Array<{ seq?: number; wkplNm?: string; wkplRoadNmDtlAddr?: string; bzowrRgstNo?: string; dataCrtYm?: string; wkplJnngStcd?: string; 가입자수?: number | null; 업종?: string | null }>; totalCount?: number; error?: string } | null = null;
       try {
         npsResult = await callNpsSearch(company);
       } catch (npsErr: any) {
@@ -126,6 +126,8 @@ export default function Home() {
                 ? it.dataCrtYm.slice(0, 4) + "-" + it.dataCrtYm.slice(4, 6)
                 : it.dataCrtYm
               : undefined,
+            가입자수: typeof it.가입자수 === "number" ? it.가입자수 : undefined,
+            업종: it.업종 && it.업종 !== "BIZ_NO미존재사업장" ? it.업종 : undefined,
           }))
         );
         setPhase("candidates");
@@ -295,6 +297,7 @@ export default function Home() {
   }, [top, callApi]);
 
   const fmtNum = (n: number) => n.toLocaleString("ko-KR");
+  const searchUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(company.trim() + " 법인명")}`;
   const fmtPercentRatio = (ratio: number) => (ratio * 100).toFixed(1) + "%";
   const fmtPercentValue = (pct: number) => pct.toFixed(1) + "%";
   const fmtMultiple = (n: number) => n.toFixed(1) + "배";
@@ -311,6 +314,9 @@ export default function Home() {
         <div className="w-full max-w-md rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800 whitespace-pre-line">
           {error}
         </div>
+      )}
+      {error && error.startsWith("해당 이름의 사업장을 찾지 못했습니다") && company.trim() && (
+        <p className="text-xs text-zinc-500">찾는 회사가 없나요? <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-600 underline">'{company.trim()}' 법인명 검색해 보기 ↗</a></p>
       )}
 
       {loading && loadingText && (
@@ -335,6 +341,10 @@ export default function Home() {
               검색
             </button>
           </form>
+          <p className="w-full max-w-md text-xs text-zinc-500">
+            앱·브랜드 이름보다 회사 정식 이름(법인명)으로 찾아야 정확합니다. 예: 토스 → 비바리퍼블리카, 배민 → 우아한형제들<br />
+            KT, LG 같은 영문 약자는 케이티, 엘지로도 함께 찾습니다.
+          </p>
           <div className="flex gap-2">
             <button
               className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-900 hover:bg-zinc-100"
@@ -363,7 +373,7 @@ export default function Home() {
                     <div className="truncate font-medium text-zinc-900">{c.사업장명}</div>
                     <div className="text-xs text-zinc-500">
                       {c.source === "nps"
-                        ? `공공데이터 · ${c.주소 || ""} · 기준월 ${c.기준월 || ""}`
+                        ? [c.업종, c.가입자수 != null ? `가입자 ${fmtNum(c.가입자수)}명` : undefined, c.주소, c.기준월 ? `기준월 ${c.기준월}` : undefined].filter(Boolean).join(" · ")
                         : `동봉 데이터${c.시도 ? ` · ${c.시도}` : ""}${c.가입자수 != null ? ` · 가입자 ${fmtNum(c.가입자수)}명` : ""}`}
                     </div>
                   </div>
@@ -378,6 +388,7 @@ export default function Home() {
               </li>
             ))}
           </ul>
+          <p className="mt-3 text-xs text-zinc-500">찾는 회사가 없나요? <a href={searchUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-600 underline">'{company.trim()}' 법인명 검색해 보기 ↗</a></p>
           <button
             className="mt-3 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
             onClick={() => { setPhase("search"); setCompany(""); setResultMeta(null); setLoadingText(null); }}
