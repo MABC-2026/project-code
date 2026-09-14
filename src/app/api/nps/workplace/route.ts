@@ -140,12 +140,17 @@ export async function GET(req: NextRequest) {
   let totalCount = 0;
 
   try {
+    // 사업자번호에서 숫자만 추출해 앞 6자리 확보
+    const digitsOnly = bizno.replace(/\D/g, "");
+    const regNo6 = digitsOnly.length >= 6 ? digitsOnly.slice(0, 6) : "";
+
     for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
       const encodedParams = new URLSearchParams({
         wkplNm: name.trim(),
         dataType: "json",
         numOfRows: "100",
         pageNo: pageNo.toString(),
+        ...(regNo6 && { bzowrRgstNo: regNo6 }),
       });
       const url = `${BASE_URL}?${encodedParams.toString()}&serviceKey=${apiKey}`;
 
