@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import TrendTable from "@/components/TrendTable";
 export default function Home() {
   const [query, setQuery] = useState("");
   const [company, setCompany] = useState("");
@@ -9,6 +10,7 @@ export default function Home() {
     번호: number;
     사업장명: string;
     업종?: string;
+    seq?: string;
     시도?: string;
     가입자수?: number;
     source: "nps" | "csv";
@@ -29,6 +31,7 @@ export default function Home() {
     계절성주의?: boolean;
     업종기준선_일치?: boolean;
     안내문?: string;
+    원본_업종명?: string;
     추이?: any;
     실패한달?: any;
     제외한달?: any;
@@ -55,7 +58,6 @@ export default function Home() {
     const params = new URLSearchParams({
       wkplNm: wkplNm.trim(),
       dataType: "json",
-      numOfRows: "10",
       pageNo: "1",
     });
     const res = await fetch(`/api/nps/search?${params.toString()}`);
@@ -109,18 +111,21 @@ export default function Home() {
       }
 
       if (npsResult && npsResult.items && npsResult.items.length > 0) {
-        const npsItems = npsResult.items;
-        const displayed = npsItems.slice(0, 10);
         setCandidates(
-          displayed.map((it, i) => ({
+          npsResult.items.map((it, i) => ({
             번호: i + 1,
             사업장명: it.wkplNm || "(이름 미상)",
+            seq: it.seq != null ? String(it.seq) : undefined,
             시도: it.wkplRoadNmDtlAddr ? it.wkplRoadNmDtlAddr.split(" ")[0] || "" : "",
             source: "nps" as const,
             wkplNm: it.wkplNm || undefined,
             bzowrRgstNo: it.bzowrRgstNo || undefined,
             주소: it.wkplRoadNmDtlAddr || undefined,
-            기준월: it.dataCrtYm || undefined,
+            기준월: it.dataCrtYm
+              ? it.dataCrtYm.length === 6
+                ? it.dataCrtYm.slice(0, 4) + "-" + it.dataCrtYm.slice(4, 6)
+                : it.dataCrtYm
+              : undefined,
           }))
         );
         setPhase("candidates");
@@ -176,22 +181,28 @@ export default function Home() {
     setLoadingText(null);
     try {
       if (c.source === "nps") {
-        setLoadingText("최근 12개월 국민연금 자료를 불러오는 중입니다 (15초 정도 걸립니다)");
+        setLoadingText("최근 12개월 국민연금 자료를 불러오는 중입니다 (5초 정도 걸립니다)");
         const wpParams = new URLSearchParams({
           name: c.사업장명,
           bizno: c.bzowrRgstNo || "",
           addr: c.주소 || "",
+          ...(c.seq ? { seq: c.seq } : {}),
         });
         let workplaceFailReason: string | null = null;
         let workplaceRows: any[] | null = null;
         let workplaceFailedMonths: any = null;
         try {
           const wpRes = await fetch(`/api/nps/workplace?${wpParams.toString()}`);
-          if (!wpRes.ok) throw new Error(`HTTP ${wpRes.status}`);
-          const wpData = await wpRes.json();
-          if (!wpData.ok) throw new Error(wpData.사유 || wpData.error || "공공데이터 조회 실패");
-          workplaceRows = wpData.rows;
-          workplaceFailedMonths = wpData.실패한달;
+          const wpJson = (await wpRes.json().catch(() => null)) || {};
+          if (!wpRes.ok || !wpJson.ok) {
+            throw new Error(
+              (wpJson && wpJson.사유) ||
+                wpJson.error ||
+                `HTTP ${wpRes.status}`
+            );
+          }
+          workplaceRows = wpJson.rows;
+          workplaceFailedMonths = wpJson.실패한달;
         } catch (wpErr: any) {
           workplaceFailReason = wpErr.message || "공공데이터 조회 실패";
         }
@@ -207,6 +218,7 @@ export default function Home() {
                 계절성주의: diagData.계절성주의,
                 업종기준선_일치: diagData.업종기준선_일치,
                 안내문: diagData.안내문,
+                원본_업종명: diagData.원본_업종명,
                 추이: diagData.추이,
                 제외한달: diagData.제외한달,
                 실패한달: workplaceFailedMonths,
@@ -226,6 +238,7 @@ export default function Home() {
             setResult(sampleResult);
             setResultMeta({
               입력_출처: "동봉 샘플",
+              계절성주의: true,
               대체사유: workplaceFailReason,
             });
             setPhase("result");
@@ -243,8 +256,9 @@ export default function Home() {
         if (sampleResult && sampleResult !== "없음") {
           setResult(sampleResult);
           setResultMeta({
-            입력_출처: "동봉 샘플",
-          });
+              입력_출처: "동봉 샘플",
+              계절성주의: true,
+            });
           setPhase("result");
           return;
         }
@@ -392,7 +406,7 @@ export default function Home() {
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">업종 / 지역</dt>
-            <dd className="text-zinc-900">{result.업종 || "-"} / {result.시도 || "-"}</dd>
+            <dd className="text-zinc-900">{result.업종 || resultMeta?.원본_업종명 || "-"} / {result.시도 || "-"}</dd>
             <dt className="text-zinc-500">가입자수</dt>
             <dd className="text-zinc-900">{fmtNum(result.가입자수)}명</dd>
             <dt className="text-zinc-500">당월 순증감</dt>
@@ -491,6 +505,11 @@ export default function Home() {
             - 은폐지수가 {fmtSuppressed(result.은폐지수)}라는 것은 총원 변화 {result.순증감 >= 0 ? "+" : ""}{fmtNum(result.순증감)}명 뒤에 실제로는 {fmtNum(result.총이동)}명이 움직였다는 뜻입니다.
           </div>
 
+          <TrendTable
+            rows={resultMeta?.추이}
+            failedMonths={resultMeta?.실패한달}
+            excludedMonths={resultMeta?.제외한달}
+          />
           <p className="mt-4 text-sm text-zinc-600">
             {resultMeta?.안내문 || "본 수치는 공식 통계가 아니라 조회 시점의 행정 기록입니다"}
           </p>
