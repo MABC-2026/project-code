@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
 
   const wkplNm = searchParams.get("wkplNm");
+  // pageNo는 응답용으로만 읽고 API 호출에는 쓰지 않음 (항상 100건, 1페이지)
   const pageNo = parseInt(searchParams.get("pageNo") ?? "1", 10);
-  const numOfRows = parseInt(searchParams.get("numOfRows") ?? "100", 10);
 
   if (!wkplNm || wkplNm.trim().length === 0) {
     return NextResponse.json(
@@ -56,61 +56,105 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // serviceKey 는 ENCODING 키이므로 URL 문자열에 직접 붙여서 이중 인코딩을 피한다.
-  const encodedParams = new URLSearchParams({
-    wkplNm: wkplNm.trim(),
-    dataType: "json",
-    numOfRows: numOfRows.toString(),
-    pageNo: pageNo.toString(),
-  });
+  // ── 검색어 구성 ──
+  function norm(s: string): string {
+    return s.replace(/[\s_\-()]/g, "").toLowerCase();
+  }
+  function stripCorp(name: string): string {
+    let r = name;
+    for (const p of [
+      /주식회사\s*/g,
+      /유한회사\s*/g,
+      /유한책임회사\s*/g,
+      /\(\s*주\s*\)/g,
+      /（\s*주\s*）/g,
+      /\(\s*유\s*\)/g,
+      /（\s*유\s*）/g,
+      /㈜\s*/g,
+    ]) {
+      r = r.replace(p, "");
+    }
+    return r.trim();
+  }
 
-  const url = `${BASE_URL}?${encodedParams.toString()}&serviceKey=${apiKey}`;
+  const trimmed = wkplNm.trim();
+  const baseName = stripCorp(trimmed);
+  const queries: string[] = [trimmed];
+  if (baseName) {
+    const q1 = `주식회사 ${baseName}`;
+    const q2 = `${baseName} 주식회사`;
+    if (q1 !== trimmed) queries.push(q1);
+    if (q2 !== trimmed) queries.push(q2);
+  }
 
-  try {
+  // ── API 호출 함수 (항상 numOfRows=100, pageNo=1) ──
+  async function fetchNps(query: string) {
+    const encodedParams = new URLSearchParams({
+      wkplNm: query,
+      dataType: "json",
+      numOfRows: "100",
+      pageNo: "1",
+    });
+    const url = `${BASE_URL}?${encodedParams.toString()}&serviceKey=${apiKey}`;
     const res = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
       },
     });
-
     if (!res.ok) {
       const text = await res.text();
       console.error(`[NPS] HTTP ${res.status}: ${text.slice(0, 500)}`);
+      throw new Error(`공공데이터 포털 응답 오류 (${res.status})`);
+    }
+    return res.json();
+  }
+
+  try {
+    // ── 모든 검색어를 병렬로 호출 ──
+    const results = await Promise.allSettled(
+      queries.map((q) => fetchNps(q))
+    );
+
+    // 원본 쿼리(첫 번째) 실패 확인 → 즉시 오류 반환
+    if (results[0].status === "rejected") {
       return NextResponse.json(
-        { error: `공공데이터 포털 응답 오류 (${res.status})` },
+        { error: (results[0] as PromiseRejectedResult).reason.message },
         { status: 502 }
       );
     }
 
-    const data = await res.json();
+    const originalData = (results[0] as PromiseFulfilledResult<any>).value;
+
+    // ── 모든 성공 결과를 병합 ──
+    let allItems: any[] = [];
+    const origItems =
+      originalData?.response?.body?.items?.item ?? [];
+    allItems = allItems.concat(
+      Array.isArray(origItems) ? origItems : [origItems]
+    );
+
+    for (let i = 1; i < results.length; i++) {
+      const r = results[i];
+      if (r.status === "fulfilled") {
+        const items =
+          (r as PromiseFulfilledResult<any>).value?.response?.body?.items?.item ?? [];
+        allItems = allItems.concat(
+          Array.isArray(items) ? items : [items]
+        );
+      }
+    }
 
     const header =
-      data?.response?.header ?? {};
+      originalData?.response?.header ?? {};
     const resultCode = header.resultCode;
     const resultMsg = header.resultMsg;
 
-    // 정상 판정: resultCode === "00"
-    if (resultCode !== "00") {
-      return NextResponse.json(
-        {
-          resultCode,
-          resultMsg,
-          items: [],
-          warned: true,
-        },
-        { status: 200 } // API 자체가 반환한 코드이므로 200 으로 전달
-      );
-    }
-
-    const items =
-      data?.response?.body?.items?.item ?? [];
-    // item 이 객체 하나일 때도 배열로 정규화
-    const normalizedItems = Array.isArray(items) ? items : [items];
+    const normalizedItems = Array.isArray(allItems)
+      ? allItems
+      : [allItems];
 
     // ── 중복 제거: 사업장명(wkplNm) + 사업자번호(bzowrRgstNo) 기준 그룹화 ──
-    // 같은 사업장이 달마다 한 번씩(최대 12회) 들어오며, seq와 주소가 달라도
-    // wkplNm + bzowrRgstNo 가 같으면 한 업체로 묶는다. 주소는 묶는 기준에 넣지 않는다.
     const groups = new Map<string, typeof normalizedItems>();
     for (const it of normalizedItems) {
       const key = `${it.wkplNm}|${it.bzowrRgstNo ?? ""}`;
@@ -140,30 +184,11 @@ export async function GET(req: NextRequest) {
         wkplJnngStcd: best.wkplJnngStcd,
         bzowrRgstNo: best.bzowrRgstNo ?? "",
         dataCrtYm: best.dataCrtYm,
-        months: group.length,
+        months: new Set(group.map((it) => it.dataCrtYm)).size,
       });
     }
 
-    // ── 4단계 정렬 (skill/scripts/stability.py:search_company 와 동일 로직) ──
-    function norm(s: string): string {
-      return s.replace(/[\s_\-()]/g, "").toLowerCase();
-    }
-    function stripCorp(name: string): string {
-      let r = name;
-      for (const p of [
-        /주식회사\s*/g,
-        /유한회사\s*/g,
-        /유한책임회사\s*/g,
-        /\(\s*주\s*\)/g,
-        /（\s*주\s*）/g,
-        /\(\s*유\s*\)/g,
-        /（\s*유\s*）/g,
-        /㈜\s*/g,
-      ]) {
-        r = r.replace(p, "");
-      }
-      return r.trim();
-    }
+    // ── 4단계 정렬 ──
     function bigrams(s: string): Set<string> {
       const n = norm(s);
       if (n.length < 2) return new Set();
@@ -185,8 +210,8 @@ export async function GET(req: NextRequest) {
       return inter / union.size;
     }
 
-    const qNorm = norm(wkplNm);
-    const qStripped = stripCorp(wkplNm);
+    const qNorm = norm(trimmed);
+    const qStripped = stripCorp(trimmed);
     const exact: typeof representatives = [];
     const startsWith: typeof representatives = [];
     const contains: typeof representatives = [];
@@ -221,20 +246,60 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 각 그룹 내 순서는 공공 API 반환 순서 유지 (가입자수 필드 없음)
-    const sortedItems = [...exact, ...startsWith, ...contains, ...similar];
+    // ── 각 그룹 내에서 공사 현장 이름(일용//(상용) 포함)을 맨 뒤로 ──
+    function isConstructionSite(name: string): boolean {
+      return (
+        /일용/.test(name) ||
+        /\//.test(name) ||
+        /\(상용\)/.test(name) ||
+        /（상용）/.test(name)
+      );
+    }
+    function pushConstructionSitesToEnd(
+      arr: typeof representatives
+    ): typeof representatives {
+      const normal: typeof representatives = [];
+      const construction: typeof representatives = [];
+      for (const it of arr) {
+        if (isConstructionSite(it.wkplNm)) {
+          construction.push(it);
+        } else {
+          normal.push(it);
+        }
+      }
+      return [...normal, ...construction];
+    }
 
-    // 사용자에게는 상위 10건만 노출
-    const displayedItems = sortedItems.slice(0, 10);
+    const sortedItems = [
+      ...pushConstructionSitesToEnd(exact),
+      ...pushConstructionSitesToEnd(startsWith),
+      ...pushConstructionSitesToEnd(contains),
+      ...pushConstructionSitesToEnd(similar),
+    ];
 
-    return NextResponse.json({
+    // ── 공사 현장 이름을 전체 맨 뒤로 ──
+    // 4단계 그룹별로 공사 현장을 뒤로 보내는 대신,
+    // 일반 이름(4단계 순서) → 공사 현장(같은 4단계 순서) 순으로 재배열한다.
+    const normalItems = sortedItems.filter((it) => !isConstructionSite(it.wkplNm));
+    const constructionItems = sortedItems.filter((it) => isConstructionSite(it.wkplNm));
+    const reorderedItems = [...normalItems, ...constructionItems];
+
+    // 사용자에게는 상위 30건 노출
+    const displayedItems = reorderedItems.slice(0, 30);
+
+    const responseBody: any = {
       resultCode,
       resultMsg,
-      numOfRows: 10,
+      numOfRows: 30,
       pageNo,
-      totalCount: data?.response?.body?.totalCount,
+      totalCount: originalData?.response?.body?.totalCount,
       items: displayedItems,
-    });
+    };
+    if (resultCode !== "00") {
+      responseBody.warned = true;
+    }
+
+    return NextResponse.json(responseBody);
   } catch (err) {
     console.error("[NPS] 요청 실패:", err);
     return NextResponse.json(
