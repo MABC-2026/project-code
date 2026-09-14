@@ -106,6 +106,12 @@ function isConstructionSite(name: string): boolean {
   );
 }
 
+/** 공용 유틸: 대기, 재시도. */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+async function retryOnce<T>(fn: () => Promise<T>, waitMs: number): Promise<T> {
+  try { return await fn(); } catch { await sleep(waitMs); return await fn(); }
+}
+
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
 
@@ -185,8 +191,13 @@ export async function GET(req: NextRequest) {
 
   try {
     // ── 모든 검색어를 병렬로 호출 (Promise.allSettled) ──
+    // 첫 호출(q0 1쪽)만 한 번 재시도. 나머지는 그대로.
     const results = await Promise.allSettled(
-      callList.map((c) => fetchNps(c.query, c.pageNo))
+      callList.map((c, idx) =>
+        idx === 0
+          ? retryOnce(() => fetchNps(c.query, c.pageNo), 1200)
+          : fetchNps(c.query, c.pageNo)
+      )
     );
 
     // q0 1쪽이 실패했을 때만 502 반환, 나머지 실패는 무시
@@ -303,14 +314,14 @@ export async function GET(req: NextRequest) {
       ...new Set(callList.map((c) => c.query)),
     ];
 
-    // ── 상위 30곳 각각 getDetailInfoSearchV2 호출 (10개씩 배치, 건당 8초 제한) ──
+    // ── 상위 30곳 각각 getDetailInfoSearchV2 호출 (5개씩 배치, 건당 8초 제한) ──
     const detailMap = new Map<
       string,
       { jnngpCnt: number | null; vldtVlKrnNm: string | null }
     >();
 
-    for (let i = 0; i < displayedItems.length; i += 10) {
-      const batch = displayedItems.slice(i, i + 10);
+    for (let i = 0; i < displayedItems.length; i += 5) {
+      const batch = displayedItems.slice(i, i + 5);
       const batchPromises = batch.map((it) => {
         return (async () => {
           const ctrl = new AbortController();
@@ -371,6 +382,45 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 가입자수(null)가 남은 후보만 모아서 한 번 더 상세 조회 (순차)
+    const nullSeqs = displayedItems
+      .filter((it) => detailMap.get(it.seq)?.jnngpCnt == null)
+      .map((it) => it.seq);
+    if (nullSeqs.length > 0) {
+      await sleep(1200);
+      for (const seq of nullSeqs) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
+        try {
+          const url = `${DETAIL_URL}?seq=${seq}&dataType=json&serviceKey=${apiKey}`;
+          const res = await fetch(url, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            signal: ctrl.signal,
+          });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = await res.json();
+            const raw = data?.response?.body?.items?.item;
+            const items = Array.isArray(raw) ? raw : raw ? [raw] : [];
+            if (items.length > 0) {
+              const first = items[0];
+              const rawCnt = first.jnngpCnt;
+              let jnngpCnt: number | null = null;
+              if (rawCnt != null && rawCnt !== "") {
+                const n = Number(rawCnt);
+                if (!isNaN(n)) jnngpCnt = n;
+              }
+              const vldtVlKrnNm = first.vldtVlKrnNm ?? null;
+              detailMap.set(seq, { jnngpCnt, vldtVlKrnNm });
+            }
+          }
+        } catch {
+          clearTimeout(timer);
+        }
+      }
+    }
+
     // 상세 정보 부착
     for (const it of displayedItems) {
       const d = detailMap.get(it.seq);
@@ -422,7 +472,10 @@ export async function GET(req: NextRequest) {
       responseBody.warned = true;
     }
 
-    return NextResponse.json(responseBody);
+    const 모두채움 = responseItems.every((it) => it.가입자수 !== null);
+    return NextResponse.json(responseBody, {
+      headers: { "Cache-Control": 모두채움 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store" },
+    });
   } catch (err) {
     console.error("[NPS] 요청 실패:", err);
     return NextResponse.json(

@@ -105,6 +105,12 @@ function bizType(code: string | undefined): string {
   return "";
 }
 
+/** 공용 유틸: 대기, 재시도. */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+async function retryOnce<T>(fn: () => Promise<T>, waitMs: number): Promise<T> {
+  try { return await fn(); } catch { await sleep(waitMs); return await fn(); }
+}
+
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
 
@@ -157,7 +163,7 @@ export async function GET(req: NextRequest) {
       const url = `${BASE_URL}?${encodedParams.toString()}&serviceKey=${apiKey}`;
 
       apiCallCount++;
-      const data = await fetchJson(url, 25000);
+      const data = await retryOnce(() => fetchJson(url, 25000), 1200);
       const header = data?.response?.header ?? {};
       const resultCode = header.resultCode;
 
@@ -383,6 +389,19 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // 달별 조회 실패분을 한 번 더 시도
+  if (monthFailures.length > 0) {
+    await sleep(1200);
+    const retryTargets = [...monthFailures];
+    monthFailures.length = 0;
+    for (const f of retryTargets) {
+      const item = recentItems.find((it) => formatMonth(it.dataCrtYm) === f.자료년월);
+      if (!item) { monthFailures.push(f); continue; }
+      const r = await fetchMonthData(item, item.dataCrtYm);
+      if (r) rows.push(r);
+    }
+  }
+
   const latestRow = rows.find((r) => r.자료생성년월 === latestMonthFormatted);
   if (!latestRow) {
     latestFailed = true;
@@ -416,5 +435,7 @@ export async function GET(req: NextRequest) {
     실패한달: [...failedMonths, ...monthFailures].sort((a, b) => a.자료년월.localeCompare(b.자료년월)),
     api호출수: apiCallCount,
     적용일: baseAdptDt,
+  }, {
+    headers: { "Cache-Control": [...failedMonths, ...monthFailures].length === 0 ? "public, s-maxage=3600, stale-while-revalidate=86400" : "no-store" },
   });
 }

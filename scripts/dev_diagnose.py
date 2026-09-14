@@ -20,7 +20,7 @@ from http.server import ThreadingHTTPServer
 PORT = int(os.environ.get("DIAGNOSE_PORT", "8000"))
 SERVER = ThreadingHTTPServer(("127.0.0.1", PORT), diagnose.handler)
 
-print(f"진단 서버: @url:`http://127.0.0.1`:{PORT}/api/diagnose (Ctrl+C 로 종료)")
+print(f"진단 서버 주소: 127.0.0.1:{PORT}/api/diagnose (Ctrl+C 로 종료)")
 sys.stdout.flush()
 try:
     SERVER.serve_forever()
