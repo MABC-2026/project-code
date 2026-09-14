@@ -231,7 +231,7 @@ export default function Home() {
             setPhase("result");
             return;
           }
-          setError(`공공데이터 조회에 실패했고(${workplaceFailReason}), 동봉 샘플(2026-07, 2,208곳)에도 없는 사업장입니다.`);
+          setError(`공공데이터 조회에 실패했고(${workplaceFailReason}), 동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)에도 없는 사업장입니다.`);
           setPhase("search");
           return;
         }
@@ -248,7 +248,7 @@ export default function Home() {
           setPhase("result");
           return;
         }
-        setError(`${c.사업장명}은(는) 동봉 샘플(2026-07, 2,208곳)에 없는 사업장입니다.`);
+        setError(`${c.사업장명}은(는) 동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)에 없는 사업장입니다.`);
         setPhase("search");
         return;
       }
@@ -327,7 +327,7 @@ export default function Home() {
               onClick={handleShowReport}
               disabled={loading}
             >
-              전체 샘플 리포트 보기
+              전체 리포트 보기 (52,957곳)
             </button>
           </div>
         </>
@@ -350,7 +350,7 @@ export default function Home() {
                     <div className="text-xs text-zinc-500">
                       {c.source === "nps"
                         ? `공공데이터 · ${c.주소 || ""} · 기준월 ${c.기준월 || ""}`
-                        : `CSV 샘플 데이터${c.시도 ? ` · ${c.시도}` : ""}${c.가입자수 != null ? ` · 가입자 ${fmtNum(c.가입자수)}명` : ""}`}
+                        : `동봉 데이터${c.시도 ? ` · ${c.시도}` : ""}${c.가입자수 != null ? ` · 가입자 ${fmtNum(c.가입자수)}명` : ""}`}
                     </div>
                   </div>
                 </div>
@@ -378,13 +378,13 @@ export default function Home() {
           <h2 className="mb-1 text-lg font-semibold text-zinc-900">{result.사업장명}</h2>
           {resultMeta?.대체사유 ? (
             <div className="mt-1 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-700">
-              공공데이터 조회에 실패해 동봉 샘플로 보여드립니다 — 사유: {resultMeta.대체사유}
+              공공데이터 조회에 실패해 동봉 데이터(2026-07)로 보여드립니다 — 사유: {resultMeta.대체사유}
             </div>
           ) : null}
           <p className="text-sm text-zinc-500 mt-1">
             {resultMeta?.입력_출처 === "공공데이터" || resultMeta?.입력_출처 === "공공데이터 API"
               ? `공공데이터 API · 기준월 ${resultMeta?.자료년월 || ""}`
-              : "동봉 샘플(2026-07, 2,208곳)"}
+              : "동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)"}
           </p>
           {resultMeta?.계절성주의 && (
             <p className="text-sm text-zinc-600 mt-1">7월·1월 자료는 공공기관 정기 인사이동이 섞여 회전율이 높게 나올 수 있습니다</p>
@@ -516,7 +516,7 @@ export default function Home() {
       {phase === "report" && report && (
         <div className="w-full max-w-4xl rounded-lg border border-zinc-200 bg-white p-4">
           <h2 className="mb-3 text-lg font-semibold text-zinc-900">
-            전체 리포트 — 샘플 데이터 ({report.분석대상수}개소 분석)
+            전체 리포트 — 동봉 데이터 ({report.분석대상수}개소 분석)
           </h2>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">자료년월</dt>

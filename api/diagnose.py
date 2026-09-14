@@ -19,7 +19,7 @@ SKILL_ASSETS = os.path.join(ROOT, "skill", "assets")
 
 sys.path.insert(0, SKILL_SCRIPTS)
 
-from stability import run, read_rows, MIN_HEADCOUNT, RANK_MIN_HEADCOUNT, NO_INDUSTRY
+from stability import run, read_rows, MIN_HEADCOUNT, RANK_MIN_HEADCOUNT, NO_INDUSTRY, search_company
 
 BASELINE_PATH = os.path.join(SKILL_ASSETS, "industry_baseline.csv")
 SAMPLE_PATH = os.path.join(SKILL_ASSETS, "sample_workplaces.csv")
@@ -61,6 +61,38 @@ def _rows_from_text(text: str):
         except OSError:
             pass
 
+
+def _rows_to_temp_csv(rows):
+    """read_rows 결과 행 목록을 stability.run()이 읽을 수 있는 임시 CSV로 쓰고 경로를 반환한다.
+
+    read_rows 결과의 키(년월·신규·상실·고지금액)를 stability가 기대하는 열 이름으로 옮겨 쓴다.
+    부른 쪽이 finally에서 반드시 지운다."""
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False,
+                                      encoding="utf-8-sig", newline="")
+    try:
+        w = csv.writer(tmp)
+        w.writerow(["자료생성년월", "사업장명", "업종", "시도", "사업장형태",
+                    "가입자수", "당월고지금액", "신규취득자수", "상실가입자수"])
+        for r in rows:
+            w.writerow([
+                r.get("년월", ""),
+                r.get("사업장명", ""),
+                r.get("업종", ""),
+                r.get("시도", ""),
+                "",  # 사업장형태 — read_rows 결과에 없음
+                r.get("가입자수", 0),
+                r.get("고지금액", 0),
+                r.get("신규", 0),
+                r.get("상실", 0),
+            ])
+        tmp.close()
+        return tmp.name
+    except Exception:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+        raise
 
 def _build_diagnosis_dict(row, base, allmed):
     """stability.run()이 반환한 개별 사업장 dict을 프론트엔드용으로 변환한다.
@@ -345,16 +377,39 @@ class handler(BaseHTTPRequestHandler):
                 self._json_error("유효한 사업장이 없음", 422)
                 return
 
-            _analyzed, analyzed, base, allmed, YM, SEASON, _dropped_report, enc, BASE_SRC, result_list = run(
-                path=csv_path, company=company, top_n=top,
-            )
-
-            is_sample = os.path.abspath(csv_path) == os.path.abspath(SAMPLE_PATH)
-
+            # 회사 검색 경로 — company 가 있을 때
             if company:
-                cand = list(result_list)
+                exact, starts_with, contains, similar = search_company(rows, company)
+                cand = list(exact) + list(starts_with) + list(contains) + list(similar)
                 cand = cand[:10]
-                # pick 이 유효하면 해당 후보를 바로 진단한다 (page.tsx handlePick 대응).
+                if not cand:
+                    out = {
+                        "ok": True,
+                        "입력_샘플시연": os.path.abspath(csv_path) == os.path.abspath(SAMPLE_PATH),
+                        "검색결과_건수": 0,
+                        "분석대상수": sum(1 for r in rows if r["가입자수"] >= MIN_HEADCOUNT),
+                        "전체행수": len(rows),
+                        "제외행수": dropped,
+                        "회사_미발견": True,
+                        "검색그룹": {"정확히일치": [], "입력어로시작": [], "입력어포함": [], "유사명": []},
+                    }
+                    self._json_response(out, 200)
+                    return
+                # 후보 행만 임시 CSV에 쓰고 run 호출
+                tmp_path = _rows_to_temp_csv(cand)
+                try:
+                    (_analyzed, analyzed, base, allmed, YM, SEASON,
+                     _dropped_report, enc, BASE_SRC, result_list) = run(
+                        path=tmp_path, company=company, top_n=top,
+                    )
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+                cand = list(result_list)[:10]
+                is_sample = os.path.abspath(csv_path) == os.path.abspath(SAMPLE_PATH)
+
                 if pick is not None and 1 <= pick <= len(cand):
                     out = {
                         "ok": True,
@@ -363,7 +418,7 @@ class handler(BaseHTTPRequestHandler):
                         "자료년월": YM,
                         "계절성주의": bool(SEASON),
                         "기준선출처": BASE_SRC,
-                        "분석대상수": len(analyzed),
+                        "분석대상수": sum(1 for r in rows if r["가입자수"] >= MIN_HEADCOUNT),
                         "전체행수": len(rows),
                         "제외행수": dropped,
                         "업종기준선개수": len(base),
@@ -378,15 +433,12 @@ class handler(BaseHTTPRequestHandler):
                     "자료년월": YM,
                     "계절성주의": bool(SEASON),
                     "기준선출처": BASE_SRC,
-                    "분석대상수": len(analyzed),
+                    "분석대상수": sum(1 for r in rows if r["가입자수"] >= MIN_HEADCOUNT),
                     "전체행수": len(rows),
                     "제외행수": dropped,
                     "업종기준선개수": len(base),
                 }
-                if not cand:
-                    out["회사_미발견"] = True
-                    out["검색그룹"] = {"정확히일치": [], "입력어로시작": [], "입력어포함": [], "유사명": []}
-                elif len(cand) == 1:
+                if len(cand) == 1:
                     out["진단결과"] = _build_diagnosis_dict(cand[0], base, allmed)
                 else:
                     out["후보목록"] = [{"번호": i + 1, "사업장명": r["사업장명"],
@@ -402,11 +454,40 @@ class handler(BaseHTTPRequestHandler):
                 self._json_response(out, 200)
                 return
 
-            # 전체 리포트
+            # 전체 리포트 경로 — company 가 없을 때
+            analyzed_chunks = []
+            base = None
+            allmed = None
+            YM = None
+            SEASON = None
+            BASE_SRC = None
+            for start in range(0, len(rows), 15000):
+                chunk = rows[start:start + 15000]
+                tmp_path = _rows_to_temp_csv(chunk)
+                try:
+                    (_analyzed, chunk_analyzed, chunk_base, chunk_allmed,
+                     chunk_YM, chunk_SEASON, _dr, _enc, chunk_BASE_SRC,
+                     _rl) = run(path=tmp_path, top_n=top)
+                    analyzed_chunks.append(chunk_analyzed)
+                    if base is None:
+                        base = chunk_base
+                        allmed = chunk_allmed
+                        YM = chunk_YM
+                        SEASON = chunk_SEASON
+                        BASE_SRC = chunk_BASE_SRC
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+            analyzed = []
+            for c in analyzed_chunks:
+                analyzed.extend(c)
+            is_sample = os.path.abspath(csv_path) == os.path.abspath(SAMPLE_PATH)
             cand = [r for r in analyzed if not r["경고"] and r["총이동"] >= 10
                     and r["가입자수"] >= RANK_MIN_HEADCOUNT and r["업종"] not in NO_INDUSTRY]
             rank = [r for r in cand if abs(r["순증감"]) <= max(1, r["가입자수"] * 0.01)
-                    and r["업종배수"] >= 2.0]
+                    and r["업종배수"] >= 2.0 and r["업종"] in base]
             cand_ranked = [r for r in analyzed if not r["경고"] and r["총이동"] >= 10
                            and r["가입자수"] >= RANK_MIN_HEADCOUNT and r["업종"] not in NO_INDUSTRY]
 
