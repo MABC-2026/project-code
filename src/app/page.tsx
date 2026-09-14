@@ -13,6 +13,9 @@ export default function Home() {
     가입자수?: number;
     source: "nps" | "csv";
     wkplNm?: string;
+    bzowrRgstNo?: string;
+    주소?: string;
+    기준월?: string;
   }>>([]);
   const [pick, setPick] = useState<number | null>(null);
   const [result, setResult] = useState<any>(null);
@@ -20,8 +23,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [top, setTop] = useState(10);
-  const [progress, setProgress] = useState(0);
-  const [progressLabel, setProgressLabel] = useState("");
+  const [resultMeta, setResultMeta] = useState<{
+    입력_출처?: string;
+    자료년월?: string;
+    계절성주의?: boolean;
+    업종기준선_일치?: boolean;
+    안내문?: string;
+    추이?: any;
+    실패한달?: any;
+    제외한달?: any;
+    대체사유?: string;
+  } | null>(null);
+  const [loadingText, setLoadingText] = useState<string | null>(null);
 
   const callApi = useCallback(async (body: Record<string, any>) => {
     const res = await fetch("/api/diagnose", {
@@ -38,12 +51,14 @@ export default function Home() {
     return res.json();
   }, []);
 
-  const callNpsDiagnose = useCallback(async (wkplNm: string, pick?: number) => {
-    const res = await fetch("/api/nps/diagnose", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ company: wkplNm, pick }),
+  const callNpsSearch = useCallback(async (wkplNm: string) => {
+    const params = new URLSearchParams({
+      wkplNm: wkplNm.trim(),
+      dataType: "json",
+      numOfRows: "10",
+      pageNo: "1",
     });
+    const res = await fetch(`/api/nps/search?${params.toString()}`);
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       let detail = "";
@@ -52,6 +67,25 @@ export default function Home() {
     }
     return res.json();
   }, []);
+
+  const sampleDiagnose = useCallback(async (companyName: string): Promise<any> => {
+    try {
+      const data = await callApi({ company: companyName, csvPath: "sample_workplaces.csv" });
+      if (!data.ok) return "없음";
+      if (data.진단결과) return data.진단결과;
+      if (data.회사_미발견) return "없음";
+      if (data.후보목록 && data.후보목록.length > 0) {
+        const exact = data.후보목록.find((c: any) => c.사업장명 === companyName);
+        if (exact && exact.번호 != null) {
+          const pickData = await callApi({ company: companyName, csvPath: "sample_workplaces.csv", pick: exact.번호 });
+          if (pickData.ok && pickData.진단결과) return pickData.진단결과;
+        }
+      }
+      return "없음";
+    } catch {
+      return "없음";
+    }
+  }, [callApi]);
 
   const handleSearch = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,67 +96,62 @@ export default function Home() {
     setCandidates([]);
     setResult(null);
     setReport(null);
-    setProgress(0);
-    setProgressLabel("CSV 데이터 확인 중...");
+    setResultMeta(null);
+    setLoadingText(null);
     try {
-      // 1. CSV 먼저 확인
-      setProgress(20);
-      const data = await callApi({ company, csvPath: "sample_workplaces.csv" });
-      if (data.ok) {
-        if (data.진단결과) {
-          setResult(data.진단결과);
-          setProgress(100);
-          setProgressLabel("");
-          setPhase("result");
-          return;
-        }
-        if (data.후보목록 && data.후보목록.length > 0) {
-          setCandidates(
-            data.후보목록.map((c: any, i: number) => ({
-              ...c,
-              source: "csv" as const,
-              wkplNm: c.사업장명,
-            }))
-          );
-          setProgress(100);
-          setProgressLabel("");
-          setPhase("candidates");
-          setPick(null);
-          return;
-        }
+      setLoadingText("공공데이터에서 사업장을 찾는 중입니다 (10초 정도 걸립니다)");
+      // 1단계: 공공데이터포털 NPS API로 실제 사업장명 검색
+      let npsResult: { items?: Array<{ seq?: number; wkplNm?: string; wkplRoadNmDtlAddr?: string; bzowrRgstNo?: string; dataCrtYm?: string; wkplJnngStcd?: string }>; totalCount?: number; error?: string } | null = null;
+      try {
+        npsResult = await callNpsSearch(company);
+      } catch (npsErr: any) {
+        console.warn("[검색] NPS API 호출 실패, CSV 폴백 사용:", npsErr.message);
       }
 
-      // 2. CSV에 없음 → NPS 진단 시도
-      setProgress(40);
-      setProgressLabel("NPS 공공데이터 조회 중...");
-      const npsData = await callNpsDiagnose(company);
-      if (npsData.ok && npsData.진단결과) {
-        setResult(npsData.진단결과);
-        setProgress(100);
-        setProgressLabel("");
-        setPhase("result");
-        return;
-      }
-      if (npsData.ok && npsData.후보목록 && npsData.후보목록.length > 0) {
+      if (npsResult && npsResult.items && npsResult.items.length > 0) {
+        const npsItems = npsResult.items;
+        const displayed = npsItems.slice(0, 10);
         setCandidates(
-          npsData.후보목록.map((c: any, i: number) => ({
-            ...c,
+          displayed.map((it, i) => ({
+            번호: i + 1,
+            사업장명: it.wkplNm || "(이름 미상)",
+            시도: it.wkplRoadNmDtlAddr ? it.wkplRoadNmDtlAddr.split(" ")[0] || "" : "",
             source: "nps" as const,
-            wkplNm: c.사업장명 || undefined,
+            wkplNm: it.wkplNm || undefined,
+            bzowrRgstNo: it.bzowrRgstNo || undefined,
+            주소: it.wkplRoadNmDtlAddr || undefined,
+            기준월: it.dataCrtYm || undefined,
           }))
         );
-        setProgress(100);
-        setProgressLabel("");
         setPhase("candidates");
         return;
       }
-      if (npsData.회사_미발견) {
+
+      // NPS 결과 없음 → CSV 파일에서 직접 검색
+      const data = await callApi({ company, csvPath: "sample_workplaces.csv" });
+      if (!data.ok) throw new Error(data.error || "응답 이상");
+      if (data.회사_미발견) {
         setError("해당 이름의 사업장을 찾지 못했습니다.\n\n국민연금 가입 사업장명은 법인명 기준이라 브랜드명과 다를 수 있습니다.");
         setPhase("search");
         return;
       }
-
-      // 둘 다 실패
+      if (data.진단결과) {
+        setResult(data.진단결과);
+        setPhase("result");
+        return;
+      }
+      if (data.후보목록 && data.후보목록.length > 0) {
+        setCandidates(
+          data.후보목록.map((c: any, i: number) => ({
+            ...c,
+            source: "csv" as const,
+            wkplNm: c.사업장명,
+          }))
+        );
+        setPhase("candidates");
+        setPick(null);
+        return;
+      }
       setError("해당 이름의 사업장을 찾지 못했습니다.\n\n국민연금 가입 사업장명은 법인명 기준이라 브랜드명과 다를 수 있습니다.");
       setPhase("search");
     } catch (err: any) {
@@ -130,10 +159,8 @@ export default function Home() {
       setPhase("search");
     } finally {
       setLoading(false);
-      setProgress(0);
-      setProgressLabel("");
     }
-  }, [company, callApi, callNpsDiagnose]);
+  }, [company, callApi, callNpsSearch]);
 
   const handlePick = useCallback(async (번호: number) => {
     const c = candidates.find((c) => c.번호 === 번호);
@@ -145,53 +172,96 @@ export default function Home() {
     setLoading(true);
     setError(null);
     setPhase("search");
-    setProgress(0);
-    setProgressLabel(c.source === "nps" ? "NPS 공공데이터에서 상세 조회 중..." : "CSV 데이터에서 해당 사업장 찾는 중...");
+    setResultMeta(null);
+    setLoadingText(null);
     try {
-      const target = c.wkplNm || c.사업장명;
-      setProgress(30);
-      let data: any;
+      if (c.source === "nps") {
+        setLoadingText("최근 12개월 국민연금 자료를 불러오는 중입니다 (15초 정도 걸립니다)");
+        const wpParams = new URLSearchParams({
+          name: c.사업장명,
+          bizno: c.bzowrRgstNo || "",
+          addr: c.주소 || "",
+        });
+        let workplaceFailReason: string | null = null;
+        let workplaceRows: any[] | null = null;
+        let workplaceFailedMonths: any = null;
+        try {
+          const wpRes = await fetch(`/api/nps/workplace?${wpParams.toString()}`);
+          if (!wpRes.ok) throw new Error(`HTTP ${wpRes.status}`);
+          const wpData = await wpRes.json();
+          if (!wpData.ok) throw new Error(wpData.사유 || wpData.error || "공공데이터 조회 실패");
+          workplaceRows = wpData.rows;
+          workplaceFailedMonths = wpData.실패한달;
+        } catch (wpErr: any) {
+          workplaceFailReason = wpErr.message || "공공데이터 조회 실패";
+        }
+
+        if (workplaceRows) {
+          try {
+            const diagData = await callApi({ rows: workplaceRows });
+            if (diagData.진단결과) {
+              setResult(diagData.진단결과);
+              setResultMeta({
+                입력_출처: diagData.입력_출처,
+                자료년월: diagData.자료년월,
+                계절성주의: diagData.계절성주의,
+                업종기준선_일치: diagData.업종기준선_일치,
+                안내문: diagData.안내문,
+                추이: diagData.추이,
+                제외한달: diagData.제외한달,
+                실패한달: workplaceFailedMonths,
+              });
+              setPhase("result");
+              return;
+            }
+          } catch (diagErr: any) {
+            workplaceFailReason = diagErr.message || "진단 요청 실패";
+          }
+        }
+
+        // workplace 실패 또는 진단 실패 → 샘플 진단 도우미로 대체
+        if (workplaceFailReason) {
+          const sampleResult = await sampleDiagnose(c.사업장명);
+          if (sampleResult && sampleResult !== "없음") {
+            setResult(sampleResult);
+            setResultMeta({
+              입력_출처: "동봉 샘플",
+              대체사유: workplaceFailReason,
+            });
+            setPhase("result");
+            return;
+          }
+          setError(`공공데이터 조회에 실패했고(${workplaceFailReason}), 동봉 샘플(2026-07, 2,208곳)에도 없는 사업장입니다.`);
+          setPhase("search");
+          return;
+        }
+      }
+
+      // CSV 후보: 샘플 진단 도우미 사용
       if (c.source === "csv") {
-        // CSV 후보면 기존 API로 진단
-        data = await callApi({ company: target, csvPath: "sample_workplaces.csv", pick: 번호 });
-      } else {
-        // NPS 후보면 NPS 진단 API로 직접 진단 (pick 번호 포함)
-        data = await callNpsDiagnose(target, 번호);
-      }
-      setProgress(80);
-      if (!data.ok) throw new Error(data.error || "응답 이상");
-      if (data.진단결과) {
-        setResult(data.진단결과);
-        setProgress(100);
-        setProgressLabel("");
-        setPhase("result");
+        const sampleResult = await sampleDiagnose(c.사업장명);
+        if (sampleResult && sampleResult !== "없음") {
+          setResult(sampleResult);
+          setResultMeta({
+            입력_출처: "동봉 샘플",
+          });
+          setPhase("result");
+          return;
+        }
+        setError(`${c.사업장명}은(는) 동봉 샘플(2026-07, 2,208곳)에 없는 사업장입니다.`);
+        setPhase("search");
         return;
       }
-      if (data.후보목록 && data.후보목록.length > 0) {
-        setCandidates(
-          data.후보목록.map((cc: any, i: number) => ({
-            ...cc,
-            source: c.source,
-            wkplNm: cc.사업장명 || undefined,
-          }))
-        );
-        setProgress(100);
-        setProgressLabel("");
-        setPhase("candidates");
-        setPick(null);
-        return;
-      }
-      setError(`${target}은(는) 진단할 수 없습니다.`);
+
+      setError("진단 결과를 받지 못했습니다.");
       setPhase("search");
     } catch (err: any) {
       setError(err.message || "선택 중 오류");
       setPhase("search");
     } finally {
       setLoading(false);
-      setProgress(0);
-      setProgressLabel("");
     }
-  }, [company, callApi, callNpsDiagnose, candidates]);
+  }, [company, callApi, candidates, sampleDiagnose]);
 
   const handleShowReport = useCallback(async () => {
     setLoading(true);
@@ -223,34 +293,14 @@ export default function Home() {
         국민연금공단 가입 사업장 내역(공공데이터) 기준, 사업장별 인력 안정성 지표를 계산합니다.
       </p>
 
-      {loading && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-72 rounded-xl bg-white/95 p-6 shadow-2xl">
-            <div className="mb-4">
-              <div className="h-3 w-full rounded-full bg-zinc-200 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-300 ease-out"
-                  style={{
-                    width: `${progress}%`,
-                    backgroundColor: progress === 100 ? "#22c55e" : "#1e293b",
-                  }}
-                />
-              </div>
-            </div>
-            {progressLabel && (
-              <p className="text-sm text-zinc-600">{progressLabel}</p>
-            )}
-            <p className="mt-3 text-xs text-zinc-400 text-center">
-              {progress > 0 && progress < 100 ? `${progress}%` : progress === 100 ? "완료" : ""}
-            </p>
-          </div>
-        </div>
-      )}
-
       {error && (
         <div className="w-full max-w-md rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800 whitespace-pre-line">
           {error}
         </div>
+      )}
+
+      {loading && loadingText && (
+        <p className="text-zinc-400 text-sm">{loadingText}</p>
       )}
 
       {phase === "search" && (
@@ -298,9 +348,9 @@ export default function Home() {
                   <div className="min-w-0">
                     <div className="truncate font-medium text-zinc-900">{c.사업장명}</div>
                     <div className="text-xs text-zinc-500">
-                      {c.source === "nps" ? "NPS 공공데이터" : "CSV 샘플 데이터"}
-                      {c.시도 ? ` · ${c.시도}` : ""}
-                      {c.가입자수 != null ? ` · 가입자 ${fmtNum(c.가입자수)}명` : " ·가입자 수: 진단 후 확인"}
+                      {c.source === "nps"
+                        ? `공공데이터 · ${c.주소 || ""} · 기준월 ${c.기준월 || ""}`
+                        : `CSV 샘플 데이터${c.시도 ? ` · ${c.시도}` : ""}${c.가입자수 != null ? ` · 가입자 ${fmtNum(c.가입자수)}명` : ""}`}
                     </div>
                   </div>
                 </div>
@@ -316,7 +366,7 @@ export default function Home() {
           </ul>
           <button
             className="mt-3 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
-            onClick={() => { setPhase("search"); setCompany(""); }}
+            onClick={() => { setPhase("search"); setCompany(""); setResultMeta(null); setLoadingText(null); }}
           >
             뒤로
           </button>
@@ -325,15 +375,21 @@ export default function Home() {
 
       {phase === "result" && result && (
         <div className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white p-4">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900">{result.사업장명}</h2>
-            {result.자료출처 && (
-              <span className="text-xs text-zinc-500">
-                {result.자료출처}
-                {result.계절성주의 ? " ⚠️ 7월·공공기관 인사이동 시기" : ""}
-              </span>
-            )}
-          </div>
+          <h2 className="mb-1 text-lg font-semibold text-zinc-900">{result.사업장명}</h2>
+          {resultMeta?.대체사유 ? (
+            <div className="mt-1 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-700">
+              공공데이터 조회에 실패해 동봉 샘플로 보여드립니다 — 사유: {resultMeta.대체사유}
+            </div>
+          ) : null}
+          <p className="text-sm text-zinc-500 mt-1">
+            {resultMeta?.입력_출처 === "공공데이터" || resultMeta?.입력_출처 === "공공데이터 API"
+              ? `공공데이터 API · 기준월 ${resultMeta?.자료년월 || ""}`
+              : "동봉 샘플(2026-07, 2,208곳)"}
+          </p>
+          {resultMeta?.계절성주의 && (
+            <p className="text-sm text-zinc-600 mt-1">7월·1월 자료는 공공기관 정기 인사이동이 섞여 회전율이 높게 나올 수 있습니다</p>
+          )}
+
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">업종 / 지역</dt>
             <dd className="text-zinc-900">{result.업종 || "-"} / {result.시도 || "-"}</dd>
@@ -347,8 +403,12 @@ export default function Home() {
             <dd className="text-zinc-900">{fmtPercentRatio(result.월회전율)} (연환산 {fmtPercentValue(result.연환산회전율)})</dd>
             <dt className="text-zinc-500">은폐지수</dt>
             <dd className="text-zinc-900 font-medium">{fmtSuppressed(result.은폐지수)} — 총원 변화 {result.순증감 >= 0 ? "+" : ""}{fmtNum(result.순증감)}명 뒤에 {fmtNum(result.총이동)}명이 오갔습니다</dd>
-            <dt className="text-zinc-500">업종 내 상대 위치</dt>
-            <dd className="text-zinc-900">업종 중앙값의 {fmtMultiple(result.업종배수)}</dd>
+            {resultMeta?.업종기준선_일치 !== false && (
+              <>
+                <dt className="text-zinc-500">업종 내 상대 위치</dt>
+                <dd className="text-zinc-900">업종 중앙값의 {fmtMultiple(result.업종배수)}</dd>
+              </>
+            )}
             {result.추정소득 !== null && (
               <>
                 <dt className="text-zinc-500">추정 평균 기준소득월액</dt>
@@ -386,27 +446,32 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <div className="space-y-1">
-              <p className="font-medium text-zinc-900">② 업종 대비 (업종 중앙값 대비 막대)</p>
+            {resultMeta?.업종기준선_일치 !== false && (
               <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="w-40 flex-shrink-0 truncate text-zinc-800">업종 중앙값</span>
-                  <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
-                    <div className="h-full bg-zinc-400 rounded" style={{ width: `${result.업종중앙값 / Math.max(result.월회전율, result.업종중앙값) * 100}%` }} />
+                <p className="font-medium text-zinc-900">② 업종 대비 (업종 중앙값 대비 막대)</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="w-40 flex-shrink-0 truncate text-zinc-800">업종 중앙값</span>
+                    <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
+                      <div className="h-full bg-zinc-400 rounded" style={{ width: `${result.업종중앙값 / Math.max(result.월회전율, result.업종중앙값) * 100}%` }} />
+                    </div>
+                    <span className="w-24 flex-shrink-0 text-right text-zinc-800">{fmtPercentRatio(result.업종중앙값)}</span>
                   </div>
-                  <span className="w-24 flex-shrink-0 text-right text-zinc-800">{fmtPercentRatio(result.업종중앙값)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="w-40 flex-shrink-0 truncate text-zinc-800">이 사업장</span>
-                  <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
-                    <div className="h-full bg-zinc-900 rounded" style={{ width: `${result.월회전율 / Math.max(result.월회전율, result.업종중앙값) * 100}%` }} />
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="w-40 flex-shrink-0 truncate text-zinc-800">이 사업장</span>
+                    <div className="flex-1 h-4 bg-zinc-200 rounded overflow-hidden">
+                      <div className="h-full bg-zinc-900 rounded" style={{ width: `${result.월회전율 / Math.max(result.월회전율, result.업종중앙값) * 100}%` }} />
+                    </div>
+                    <span className="w-24 flex-shrink-0 text-right text-zinc-800">{fmtPercentRatio(result.월회전율)}</span>
                   </div>
-                  <span className="w-24 flex-shrink-0 text-right text-zinc-800">{fmtPercentRatio(result.월회전율)}</span>
                 </div>
+                <p className="text-zinc-500 text-xs mt-1">업종 중앙값의 {fmtMultiple(result.업종배수)}</p>
               </div>
-              <p className="text-zinc-500 text-xs mt-1">업종 중앙값의 {fmtMultiple(result.업종배수)}</p>
-            </div>
-            {result.업종내위치 && (
+            )}
+            {resultMeta?.업종기준선_일치 === false && (
+              <p className="text-zinc-600 text-sm">이 업종은 동봉 기준선(550개 업종)에 없어 업종 비교를 표시하지 않습니다</p>
+            )}
+            {result.업종내위치 && resultMeta?.업종기준선_일치 !== false && (
               <p className="text-zinc-700">업종 내 위치: {result.업종내위치}</p>
             )}
           </div>
@@ -414,13 +479,21 @@ export default function Home() {
           <div className="mt-4 text-sm text-zinc-600">
             {result.순증감 === 0
               ? `- 겉으로 보이는 총원 변화는 ${result.순증감 >= 0 ? "+" : ""}${fmtNum(result.순증감)}명으로 거의 없지만, 실제로는 ${fmtNum(result.총이동)}명(${fmtNum(result.신규)}명 들어오고 ${fmtNum(result.상실)}명 나감)이 오갔습니다.`
-              : `- 당월 총원은 ${result.순증감 >= 0 ? "+" : ""}${fmtNum(result.순증감)}명 변했지만, 그 사이에 ${fmtNum(result.총이동)}명(${fmtNum(result.신규)}명 유입·${fmtNum(result.상실)}명 유출)이 사업장을 오갔습니다.`
-            }
+              : `- 당월 총원은 ${result.순증감 >= 0 ? "+" : ""}${fmtNum(result.순증감)}명 변했지만, 그 사이에 ${fmtNum(result.총이동)}명(${fmtNum(result.신규)}명 유입·${fmtNum(result.상실)}명 유출)이 사업장을 오갔습니다.`}
             <br />
-            - 이 사업장의 월 회전율 {fmtPercentRatio(result.월회전율)}는 업종 중앙값 {fmtPercentRatio(result.업종중앙값)}의 {fmtMultiple(result.업종배수)}로, 같은 업종 평균보다 {result.업종배수 >= 1.5 ? "빠릅니다" : "비슷하거나 느립니다"}.
+            {resultMeta?.업종기준선_일치 !== false && (
+              <>
+                <br />
+                - 이 사업장의 월 회전율 {fmtPercentRatio(result.월회전율)}는 업종 중앙값 {fmtPercentRatio(result.업종중앙값)}의 {fmtMultiple(result.업종배수)}로, 같은 업종 평균보다 {result.업종배수 >= 1.5 ? "빠릅니다" : "비슷하거나 느립니다"}.
+              </>
+            )}
             <br />
             - 은폐지수가 {fmtSuppressed(result.은폐지수)}라는 것은 총원 변화 {result.순증감 >= 0 ? "+" : ""}{fmtNum(result.순증감)}명 뒤에 실제로는 {fmtNum(result.총이동)}명이 움직였다는 뜻입니다.
           </div>
+
+          <p className="mt-4 text-sm text-zinc-600">
+            {resultMeta?.안내문 || "본 수치는 공식 통계가 아니라 조회 시점의 행정 기록입니다"}
+          </p>
 
           <button
             className="mt-4 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
@@ -432,6 +505,7 @@ export default function Home() {
                 setCompany("");
               }
               setResult(null);
+              setResultMeta(null);
             }}
           >
             뒤로
@@ -446,7 +520,7 @@ export default function Home() {
           </h2>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">자료년월</dt>
-            <dd className="text-zinc-900">{report.자료년월} {report.계절성주의 ? "⚠️ 공공기관 정기 인사이동 시기" : ""}</dd>
+            <dd className="text-zinc-900">{report.자료년월} {report.계절성주의 ? " ⚠️ 공공기관 정기 인사이동 시기" : ""}</dd>
             <dt className="text-zinc-500">월 회전율 중앙값</dt>
             <dd className="text-zinc-900">{fmtPercentRatio(report.summary.월회전율중앙값)} (연환산 {fmtPercentValue(report.summary.연환산중앙값)})</dd>
             <dt className="text-zinc-500">총원 그대로인데 대량 이동</dt>
@@ -552,4 +626,3 @@ export default function Home() {
     </main>
   );
 }
-
