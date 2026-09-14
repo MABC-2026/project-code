@@ -2,10 +2,11 @@
 
 import { useState, useCallback } from "react";
 import TrendTable from "@/components/TrendTable";
+import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 export default function Home() {
   const [query, setQuery] = useState("");
   const [company, setCompany] = useState("");
-  const [phase, setPhase] = useState<"search" | "candidates" | "result" | "report">("search");
+  const [phase, setPhase] = useState<"search" | "candidates" | "result" | "report" | "compare">("search");
   const [candidates, setCandidates] = useState<Array<{
     번호: number;
     사업장명: string;
@@ -25,6 +26,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [top, setTop] = useState(10);
+  const [compareList, setCompareList] = useState<CompareEntry[]>([]);
   const [resultMeta, setResultMeta] = useState<{
     입력_출처?: string;
     자료년월?: string;
@@ -353,6 +355,14 @@ export default function Home() {
             >
               전체 리포트 보기 (52,957곳)
             </button>
+            {compareList.length >= 1 && (
+              <button
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-900 hover:bg-zinc-100"
+                onClick={() => setPhase("compare")}
+              >
+                회사 비교 ({compareList.length}곳)
+              </button>
+            )}
           </div>
         </>
       )}
@@ -525,18 +535,83 @@ export default function Home() {
             {resultMeta?.안내문 || "본 수치는 공식 통계가 아니라 조회 시점의 행정 기록입니다"}
           </p>
 
+          <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
+                onClick={() => {
+                  if (candidates.length > 0) {
+                    setPhase("candidates");
+                  } else {
+                    setPhase("search");
+                    setCompany("");
+                  }
+                  setResult(null);
+                  setResultMeta(null);
+                }}
+              >
+                뒤로
+              </button>
+              <button
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
+                disabled={compareList.some((e) => e.사업장명 === result.사업장명)}
+                onClick={() => {
+                  setCompareList((prev) => {
+                    const filtered = prev.filter(
+                      (e) => e.사업장명 !== result.사업장명,
+                    );
+                    return [
+                      ...filtered,
+                      {
+                        사업장명: result.사업장명,
+                        업종:
+                          result.업종 ||
+                          resultMeta?.원본_업종명 ||
+                          "",
+                        출처:
+                          resultMeta?.입력_출처 === "공공데이터 API"
+                            ? "공공데이터"
+                            : "동봉 데이터",
+                        자료년월: resultMeta?.자료년월 || "2026-07",
+                        진단결과: result,
+                      },
+                    ].slice(-5);
+                  });
+                }}
+              >
+                {compareList.some(
+                  (e) => e.사업장명 === result.사업장명,
+                )
+                  ? "비교 목록에 있음"
+                  : `비교에 담기 (${compareList.length}/5)`}
+              </button>
+              {compareList.length >= 2 && (
+                <button
+                  className="rounded-lg bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700"
+                  onClick={() => setPhase("compare")}
+                >
+                  회사 비교 보기 ({compareList.length}곳)
+                </button>
+              )}
+            </div>
+        </div>
+      )}
+
+      {phase === "compare" && (
+        <div className="w-full max-w-4xl rounded-lg border border-zinc-200 bg-white p-4">
+          <CompareTable
+            entries={compareList}
+            onRemove={(name) =>
+              setCompareList((prev) =>
+                prev.filter((e) => e.사업장명 !== name),
+              )
+            }
+            onClear={() => setCompareList([])}
+          />
           <button
             className="mt-4 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-700 hover:bg-zinc-100"
-            onClick={() => {
-              if (candidates.length > 0) {
-                setPhase("candidates");
-              } else {
-                setPhase("search");
-                setCompany("");
-              }
-              setResult(null);
-              setResultMeta(null);
-            }}
+            onClick={() =>
+              setPhase(result ? "result" : "search")
+            }
           >
             뒤로
           </button>
