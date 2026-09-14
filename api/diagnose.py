@@ -94,6 +94,89 @@ def _rows_to_temp_csv(rows):
             pass
         raise
 
+_BASELINE_INFO_CACHE = None
+
+
+def _baseline_info():
+    """기준선 CSV를 한 번만 읽어 캐시한다.
+
+    반환: { 업종명: {"사업장수": int, "p25": float, "p50": float, "p75": float, "p90": float} }
+    """
+    global _BASELINE_INFO_CACHE
+    if _BASELINE_INFO_CACHE is not None:
+        return _BASELINE_INFO_CACHE
+    info = {}
+    try:
+        with open(BASELINE_PATH, encoding="utf-8-sig", newline="") as f:
+            rdr = csv.DictReader(f)
+            for row in rdr:
+                name = (row.get("업종") or "").strip()
+                if not name:
+                    continue
+                median = (row.get("월회전율중앙값") or "").strip()
+                p25 = (row.get("p25") or "").strip()
+                p75 = (row.get("p75") or "").strip()
+                p90 = (row.get("p90") or "").strip()
+                try:
+                    med_f = float(median) if median else 0.0
+                except (ValueError, TypeError):
+                    med_f = 0.0
+
+                def _fill(v):
+                    if v:
+                        try:
+                            return float(v)
+                        except (ValueError, TypeError):
+                            pass
+                    return med_f
+
+                info[name] = {
+                    "사업장수": int(row.get("사업장수", 0) or 0),
+                    "p25": _fill(p25),
+                    "p50": med_f,
+                    "p75": _fill(p75),
+                    "p90": _fill(p90),
+                }
+    except Exception:
+        info = {}
+    _BASELINE_INFO_CACHE = info
+    return info
+
+
+def _industry_position(업종, 월회전율):
+    """같은 업종 안에서의 위치를 분위수로 반환한다.
+
+    업종이 기준선에 없으면 None.
+    """
+    info = _baseline_info()
+    if 업종 not in info:
+        return None
+    b = info[업종]
+    r = 월회전율
+    p25 = b["p25"]
+    p50 = b["p50"]
+    p75 = b["p75"]
+    p90 = b["p90"]
+    if r >= p90:
+        구간 = "상위 10% 안"
+    elif r >= p75:
+        구간 = "상위 10~25%"
+    elif r >= p50:
+        구간 = "상위 25~50%"
+    elif r >= p25:
+        구간 = "하위 25~50%"
+    else:
+        구간 = "하위 25% 안"
+    return {
+        "비교사업장수": b["사업장수"],
+        "p25": round(p25, 6),
+        "p50": round(p50, 6),
+        "p75": round(p75, 6),
+        "p90": round(p90, 6),
+        "구간": 구간,
+    }
+
+
 def _build_diagnosis_dict(row, base, allmed):
     """stability.run()이 반환한 개별 사업장 dict을 프론트엔드용으로 변환한다.
     원문 스크립트의 출력 포맷이 아니라, 동일한 계산값만 JSON으로 재배열한다."""
@@ -118,6 +201,7 @@ def _build_diagnosis_dict(row, base, allmed):
         "추정소득상한주의": "소득상한도달" in row["경고"],
         "업종중앙값": round(b, 6),
         "경고": row["경고"],
+        "업종위치": _industry_position(row["업종"], row["월회전율"]),
     }
 
 
