@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import TrendTable from "@/components/TrendTable";
+import ExplainCard from "@/components/ExplainCard";
 import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -27,6 +28,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [top, setTop] = useState(10);
   const [compareList, setCompareList] = useState<CompareEntry[]>([]);
+  const [explain, setExplain] = useState<{ loading: boolean; error: string | null; data: any }>({ loading: false, error: null, data: null });
+  const explainSeq = useRef(0);
   const [resultMeta, setResultMeta] = useState<{
     입력_출처?: string;
     자료년월?: string;
@@ -55,6 +58,34 @@ export default function Home() {
     }
     return res.json();
   }, []);
+
+  const requestExplain = useCallback(async (diag: any, meta: any) => {
+    const id = ++explainSeq.current;
+    setExplain({ loading: true, error: null, data: null });
+    try {
+      const res = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 진단결과: diag, 추이: meta?.추이, 자료년월: meta?.자료년월, 계절성주의: meta?.계절성주의, 입력_출처: meta?.입력_출처, 원본_업종명: meta?.원본_업종명 }),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok || !j?.ok) throw new Error(j?.사유 || `HTTP ${res.status}`);
+      if (id === explainSeq.current) setExplain({ loading: false, error: null, data: j });
+    } catch (e: any) {
+      if (id === explainSeq.current) setExplain({ loading: false, error: e.message || "해설 요청 실패", data: null });
+    }
+  }, []);
+
+  // 진단 결과가 바뀌면 해설을 부르고, 결과가 사라지면(뒤로·새 검색) 해설을 비운다
+  useEffect(() => {
+    if (!result) {
+      explainSeq.current++;
+      setExplain({ loading: false, error: null, data: null });
+      return;
+    }
+    requestExplain(result, resultMeta);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
   const callNpsSearch = useCallback(async (wkplNm: string) => {
     const params = new URLSearchParams({
@@ -424,6 +455,7 @@ export default function Home() {
           {resultMeta?.계절성주의 && (
             <p className="text-sm text-zinc-600 mt-1">7월·1월 자료는 공공기관 정기 인사이동이 섞여 회전율이 높게 나올 수 있습니다</p>
           )}
+          <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} />
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">업종 / 지역</dt>
@@ -511,20 +543,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="mt-4 text-sm text-zinc-600">
-            {result.순증감 === 0
-              ? `- 겉으로 보이는 총원 변화는 ${result.순증감 >= 0 ? "+" : ""}${fmtNum(result.순증감)}명으로 거의 없지만, 실제로는 ${fmtNum(result.총이동)}명(${fmtNum(result.신규)}명 들어오고 ${fmtNum(result.상실)}명 나감)이 오갔습니다.`
-              : `- 당월 총원은 ${result.순증감 >= 0 ? "+" : ""}${fmtNum(result.순증감)}명 변했지만, 그 사이에 ${fmtNum(result.총이동)}명(${fmtNum(result.신규)}명 유입·${fmtNum(result.상실)}명 유출)이 사업장을 오갔습니다.`}
-            <br />
-            {resultMeta?.업종기준선_일치 !== false && (
-              <>
-                <br />
-                - 이 사업장의 월 회전율 {fmtPercentRatio(result.월회전율)}는 업종 중앙값 {fmtPercentRatio(result.업종중앙값)}의 {fmtMultiple(result.업종배수)}로, 같은 업종 평균보다 {result.업종배수 >= 1.5 ? "빠릅니다" : "비슷하거나 느립니다"}.
-              </>
-            )}
-            <br />
-            - 은폐지수가 {fmtSuppressed(result.은폐지수)}라는 것은 총원 변화 {result.순증감 >= 0 ? "+" : ""}{fmtNum(result.순증감)}명 뒤에 실제로는 {fmtNum(result.총이동)}명이 움직였다는 뜻입니다.
-          </div>
+
 
           <TrendTable
             rows={resultMeta?.추이}
