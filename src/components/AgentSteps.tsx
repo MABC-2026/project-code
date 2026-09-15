@@ -1,5 +1,7 @@
 export type AgentStep = { 단계: string; 상태: "진행" | "완료" | "주의"; 내용: string };
 
+import AgentThinking from "./AgentThinking";
+
 const 단계이름: Record<string, string> = {
   검색: "사업장 찾기",
   수집: "12개월 기록 모으기",
@@ -21,6 +23,11 @@ function 상태색(step: AgentStep): string {
 
 export default function AgentSteps({ steps, compact = false }: { steps: AgentStep[]; compact?: boolean }) {
   if (steps.length === 0) return null;
+
+  const 이름찾기 = (단계: string) => {
+    const m = steps.find((x) => x.단계 === 단계)?.내용.match(/['‘]([^'’]+)['’]/);
+    return m ? m[1] : undefined;
+  };
 
   const 이름들 = steps.map((s) => {
     const raw = 단계이름[s.단계] ?? s.단계;
@@ -58,6 +65,7 @@ export default function AgentSteps({ steps, compact = false }: { steps: AgentSte
               <div className="min-w-0">
                 <p className="text-sm font-medium text-zinc-900">{raw}</p>
                 <p className="text-xs text-zinc-600">{s.내용}</p>
+                {s.상태 === "진행" && <AgentThinking 단계={s.단계} 이름={이름찾기(s.단계) ?? 이름찾기("검색")} />}
               </div>
             </li>
           );

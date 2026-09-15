@@ -515,7 +515,7 @@ export default function Home() {
             <p className="text-sm text-zinc-600 mt-1">7월·1월 자료는 공공기관 정기 인사이동이 섞여 회전율이 높게 나올 수 있습니다</p>
           )}
           <AgentSteps steps={steps} compact />
-          <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} />
+              <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} 추이={resultMeta?.추이} />
           <HiringInsight rows={resultMeta?.추이} />
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
