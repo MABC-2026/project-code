@@ -377,11 +377,11 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-50 p-6">
-      <h1 className="text-[2.75rem] font-extrabold text-center leading-tight">
+      <h1 className="text-[3.1rem] font-extrabold text-center leading-tight">
         <span className="text-zinc-900">Work-</span>
-        <span className="text-indigo-600">Signal</span>
+        <span className="text-amber-600">Signal</span>
       </h1>
-      <div className="mt-2">
+      <div className="mt-1">
         <p className="text-base text-zinc-500 text-center max-w-2xl">
           지원하려는 회사의 인력 흐름을 입사 전에 확인해보세요.<br/>
           직원이 얼마나 들어오고 나갔는지, 같은 업종과 비교해 쉽게 보여드려요.
