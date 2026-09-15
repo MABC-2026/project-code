@@ -414,10 +414,22 @@ export default function Home() {
               검색
             </button>
           </form>
-          <p className="w-full max-w-md text-xs text-zinc-500">
-            앱·브랜드 이름보다 회사 정식 이름(법인명)으로 찾아야 정확합니다. 예: 토스 → 비바리퍼블리카, 배민 → 우아한형제들<br />
-            KT, LG 같은 영문 약자는 케이티, 엘지로도 함께 찾습니다.
-          </p>
+          <div className="mt-2">
+            <div className="w-full max-w-md rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm font-semibold text-amber-800">
+                정확한 법인명을 모르시나요?
+              </p>
+              <p className="text-sm text-amber-700 mt-1">
+                '[알고 있는 회사명] + 회사'로 검색해 법인명을 확인해주세요
+              </p>
+              <p className="text-xs text-amber-600 mt-1">
+                예) 토스 회사→ 비바리퍼블리카 / 배민 회사→ 우아한형제들
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                *KT, LG 같은 영문 약자는 케이티, 엘지로도 검색해 보세요
+              </p>
+            </div>
+          </div>
           <div className="flex gap-2">
             <button
               className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-zinc-900 hover:bg-zinc-100"
