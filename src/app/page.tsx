@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import TrendTable from "@/components/TrendTable";
 import ExplainCard from "@/components/ExplainCard";
 import AgentSteps, { type AgentStep } from "@/components/AgentSteps";
+import HiringInsight from "@/components/HiringInsight";
 import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -515,6 +516,7 @@ export default function Home() {
           )}
           <AgentSteps steps={steps} compact />
           <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} />
+          <HiringInsight rows={resultMeta?.추이} />
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">업종 / 지역</dt>
