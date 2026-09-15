@@ -377,9 +377,12 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-50 p-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 text-center">이 회사, 사람이 얼마나 자주 바뀔까요?</h1>
-      <p className="text-zinc-500 text-center max-w-md">
-        국민연금 가입 기록으로 최근 12개월 동안 사람이 얼마나 들어오고 나갔는지 보여주고, 같은 업종과 비교해 쉽게 풀어드려요.
+      <h1 className="text-2xl font-semibold text-zinc-900 text-center">Work-Signal</h1>
+      <p className="text-base text-zinc-500 text-center max-w-md mt-1">
+        지원하려는 회사의 인력 흐름을 입사 전에 확인해보세요.
+      </p>
+      <p className="text-sm text-zinc-400 text-center max-w-md mt-1">
+        직원이 얼마나 들어오고 나갔는지, 같은 업종과 비교해 쉽게 보여드려요.
       </p>
 
       {error && (
