@@ -11,3 +11,5 @@ __pycache__/
 dist/
 build/
 employer_stability_report.md
+.agents
+.hermes

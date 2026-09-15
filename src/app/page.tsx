@@ -370,7 +370,7 @@ export default function Home() {
   }, [top, callApi]);
 
   const fmtNum = (n: number) => n.toLocaleString("ko-KR");
-  const searchUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(company.trim() + " 법인명")}`;
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(company.trim() + " 법인명")}`;
   const fmtPercentRatio = (ratio: number) => (ratio * 100).toFixed(1) + "%";
   const fmtPercentValue = (pct: number) => pct.toFixed(1) + "%";
   const fmtMultiple = (n: number) => n.toFixed(1) + "배";
