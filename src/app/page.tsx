@@ -377,13 +377,13 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-50 p-6">
-      <h1 className="text-2xl font-semibold text-zinc-900 text-center">Work-Signal</h1>
-      <p className="text-base text-zinc-500 text-center max-w-md mt-1">
-        지원하려는 회사의 인력 흐름을 입사 전에 확인해보세요.
-      </p>
-      <p className="text-sm text-zinc-400 text-center max-w-md mt-1">
-        직원이 얼마나 들어오고 나갔는지, 같은 업종과 비교해 쉽게 보여드려요.
-      </p>
+      <h1 className="text-4xl font-bold text-zinc-900 text-center">Work-Signal</h1>
+      <div className="mt-4">
+        <p className="text-base text-zinc-500 text-center max-w-md">
+          지원하려는 회사의 인력 흐름을 입사 전에 확인해보세요.<br/>
+          직원이 얼마나 들어오고 나갔는지, 같은 업종과 비교해 쉽게 보여드려요.
+        </p>
+      </div>
 
       {error && (
         <div className="w-full max-w-md rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800 whitespace-pre-line">
