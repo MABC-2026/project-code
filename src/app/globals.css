@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FAFAFA;
+  --foreground: #18181B;
+  --brand-black: #18181B;
+  --brand-orange: #EF7900;
+  --brand-orange-dark: #D96E00;
+  --text-body: #6B7280;
+  --border-default: #D4D4D8;
+  --bg-card: #FFFFFF;
+  --bg-orange-light: #FFF4E8;
+  --bg-info: #FFFBEB;
+  --border-info: #FCD34D;
+  --text-info-title: #92400E;
+  --text-muted: #71717A;
+  --text-zinc-900: #18181B;
+  --text-zinc-800: #27272A;
+  --text-zinc-700: #3F3F46;
+  --text-zinc-600: #52525B;
+  --text-zinc-500: #71717A;
+  --text-zinc-400: #A1A1AA;
+  --bg-zinc-50: #F4F4F5;
+  --bg-zinc-100: #F4F4F5;
+  --bg-zinc-200: #E4E4E7;
+  --bg-zinc-300: #D4D4D8;
+  --bg-zinc-400: #A1A1AA;
+  --bg-zinc-700: #42424A;
+  --bg-zinc-900: #18181B;
+  --border-zinc-100: #F4F4F5;
+  --border-zinc-200: #E4E4E7;
+  --border-zinc-300: #D4D4D8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-noto-sans-kr), var(--font-geist-sans), Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-zinc-400);
+}
+
+/* 텍스트 선택 */
+::selection {
+  background: var(--brand-orange);
+  color: #fff;
+}
+
+/* 포커스 링 */
+*:focus-visible {
+  outline: 2px solid var(--brand-orange);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
