@@ -120,7 +120,7 @@ function CandidatesInner() {
                 실패한달: wpJson.실패한달,
               }));
               sessionStorage.setItem("diagSteps", JSON.stringify(steps));
-              sessionStorage.removeItem("candidates");
+              sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
               router.push("/result");
               return;
             }
@@ -151,7 +151,7 @@ function CandidatesInner() {
                 대체사유: workplaceFailReason,
               }));
               sessionStorage.setItem("diagSteps", JSON.stringify(steps));
-              sessionStorage.removeItem("candidates");
+              sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
               router.push("/result");
               return;
             }
@@ -183,7 +183,7 @@ function CandidatesInner() {
               계절성주의: true,
             }));
             sessionStorage.setItem("diagSteps", JSON.stringify(steps));
-            sessionStorage.removeItem("candidates");
+            sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
             router.push("/result");
             return;
           }
@@ -263,7 +263,7 @@ function CandidatesInner() {
         )}
 
         {/* 로딩 오버레이 */}
-        <FullPageLoader loading={loading} steps={steps} text={loadingText} />
+        <FullPageLoader loading={loading} steps={steps} text={loadingText} company={company} />
 
         {/* 후보 목록 */}
         {!loading && candidates.length > 0 && (

@@ -3,9 +3,8 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useLoader } from "@/lib/loader";
-import { 문구목록 } from "@/components/AgentThinking";
-
-type LoaderPhase = "search" | "npsLoad" | "csvCalc" | "resultReady" | "navigate" | "해설";
+import { 문구목록, 채우기 } from "./AgentThinking";
+import type { LoaderPhase } from "@/lib/loader";
 
 const 경로맵: Record<string, { 단계: LoaderPhase; 문구키: keyof typeof 문구목록 }> = {
   "/": { 단계: "search", 문구키: "검색" },
@@ -36,21 +35,24 @@ export default function NavigationLoader() {
 
     const { 단계, 문구키 } = 진입;
     const 문구들 = 문구목록[문구키];
+    const 회사명 = sessionStorage.getItem("searchCompany")?.trim() || undefined;
     if (!문구들 || 문구들.length === 0) {
       setPhase(단계, "");
       setPercent(0);
       return;
     }
 
+    const 채운문구들 = 문구들.map((m) => 채우기(m, 회사명));
+
     활동중.current = true;
     진행Ref.current = 0;
-    setPhase(단계, 문구들[0]);
+    setPhase(단계, 채운문구들[0]);
     setPercent(0);
 
     let idx = 0;
     const 회전 = () => {
       if (!활동중.current) return;
-      setText(문구들[idx % 문구들.length]);
+      setText(채운문구들[idx % 채운문구들.length]);
       idx++;
       setTimeout(회전, 1800);
     };

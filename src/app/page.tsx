@@ -584,6 +584,7 @@ export default function Home() {
             steps={steps}
             text={loadingText}
             percent={steps.length === 0 ? 15 : steps.length === 1 ? 40 : 70}
+            company={company}
           />
         )}
 

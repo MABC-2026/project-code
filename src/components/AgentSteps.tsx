@@ -21,12 +21,12 @@ function 상태색(step: AgentStep): string {
   return "text-zinc-400 animate-pulse";
 }
 
-export default function AgentSteps({ steps, compact = false }: { steps: AgentStep[]; compact?: boolean }) {
+export default function AgentSteps({ steps, compact = false, company = "" }: { steps: AgentStep[]; compact?: boolean; company?: string }) {
   if (steps.length === 0) return null;
 
-  const 이름찾기 = (단계: string) => {
+  const 이름찾기 = (단계: string, 회사이름: string) => {
     const m = steps.find((x) => x.단계 === 단계)?.내용.match(/['‘]([^'’]+)['’]/);
-    return m ? m[1] : undefined;
+    return m ? m[1] : 회사이름;
   };
 
   const 이름들 = steps.map((s) => {
@@ -65,7 +65,7 @@ export default function AgentSteps({ steps, compact = false }: { steps: AgentSte
               <div className="min-w-0">
                 <p className="text-sm font-medium text-zinc-900">{raw}</p>
                 <p className="text-xs text-zinc-600">{s.내용}</p>
-                {s.상태 === "진행" && <AgentThinking 단계={s.단계} 이름={이름찾기(s.단계) ?? 이름찾기("검색")} />}
+                {s.상태 === "진행" && <AgentThinking 단계={s.단계} 이름={이름찾기(s.단계, company)} />}
               </div>
             </li>
           );

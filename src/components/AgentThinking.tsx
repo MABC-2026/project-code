@@ -31,11 +31,14 @@ export const 문구목록: Record<string, string[]> = {
   ],
 };
 
-function 채우기(문구: string, 이름: string | undefined): string {
+export function 채우기(문구: string, 이름: string | undefined): string {
   if (이름 === undefined) {
     return 문구.replace(/‘\{이름\}’|‘{이름}’|{이름}/g, "").replace(/  +/g, " ").trim();
   }
-  return 문구.replace(/\{이름\}/g, 이름);
+  return 문구.replace(/‘\{이름\}’|‘{이름}’|{이름}/g, (match) => {
+    if (match.startsWith("‘") && match.endsWith("’")) return `‘${이름}’`;
+    return 이름;
+  });
 }
 
 export default function AgentThinking({ 단계, 이름 }: { 단계: string; 이름?: string }) {

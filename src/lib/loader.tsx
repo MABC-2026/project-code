@@ -16,7 +16,8 @@ export type LoaderPhase =
   | "npsLoad"
   | "csvCalc"
   | "resultReady"
-  | "navigate";
+  | "navigate"
+  | "해설";
 
 interface LoaderState {
   phase: LoaderPhase;
@@ -28,6 +29,7 @@ interface LoaderContextValue {
   state: LoaderState;
   setPhase: (phase: LoaderPhase, text: string) => void;
   setPercent: (percent: number) => void;
+  setText: (text: string) => void;
   reset: () => void;
 }
 

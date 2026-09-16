@@ -77,7 +77,7 @@ function ResultInner() {
         </nav>
         <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-6 lg:px-8 flex-1">
           <div className="flex items-center justify-center py-20">
-            <FullPageLoader loading={loading} steps={steps} percent={30} />
+            <FullPageLoader loading={loading} steps={steps} percent={30} company={result?.사업장명 || ""} />
           </div>
         </div>
       </div>
@@ -165,8 +165,8 @@ function ResultInner() {
               )}
             </div>
 
-                                <AgentSteps steps={steps} compact />
-            <FullPageLoader loading={explain.loading} steps={[]} text="해설을 준비하는 중..." percent={85} />
+                                <AgentSteps steps={steps} compact company={result.사업장명} />
+            <FullPageLoader loading={explain.loading} steps={[]} text="해설을 준비하는 중..." percent={85} company={result.사업장명} />
             <ExplainCard
               loading={explain.loading}
               error={explain.error}
@@ -397,7 +397,14 @@ function ResultInner() {
               <button
                 className="rounded-xl border border-border-default bg-bg-card px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
                 onClick={() => {
-                  router.push("/");
+                  const prev = sessionStorage.getItem("prevCandidates");
+                  if (prev) {
+                    sessionStorage.setItem("candidates", prev);
+                    sessionStorage.removeItem("prevCandidates");
+                  } else {
+                    sessionStorage.removeItem("candidates");
+                  }
+                  router.push("/candidates");
                 }}
               >
                 뒤로

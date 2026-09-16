@@ -1,65 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, type ComponentProps } from "react";
 import AgentSteps from "./AgentSteps";
+
+type FullPageLoaderProps = {
+  loading: boolean;
+  steps: ComponentProps<typeof AgentSteps>["steps"];
+  company?: string;
+  text?: string | null;
+  percent?: number;
+};
 
 export default function FullPageLoader({
   loading,
   steps,
-  text,
-  percent,
-}: {
-  loading: boolean;
-  steps: any[];
-  text?: string | null;
-  percent?: number;
-}) {
-  const [localPercent, setLocalPercent] = useState(0);
-
+  company,
+}: FullPageLoaderProps) {
   useEffect(() => {
-    if (!loading) {
-      setLocalPercent(0);
-      return;
-    }
-    // steps 기반으로 대략적 진행률 계산
-    const base = percent ?? 0;
-    if (base > 0) {
-      setLocalPercent(base);
-      return;
-    }
-    if (steps.length === 0) setLocalPercent(0);
-    else if (steps.length === 1) setLocalPercent(25);
-    else if (steps.length === 2) setLocalPercent(55);
-    else setLocalPercent(85);
-  }, [loading, percent, steps.length]);
+    if (!loading) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [loading]);
 
   if (!loading) return null;
 
-  const message =
-    steps.length > 0
-      ? steps[steps.length - 1].내용
-      : text ?? "처리 중입니다";
-
   return (
-    <div className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-bg-card/95 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium text-zinc-700">{message}</p>
-          <span className="text-xs text-zinc-400">
-            {localPercent}%
-          </span>
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/25 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="기업 진단 진행 중"
+      aria-busy="true"
+    >
+      <div
+        className="
+          w-full max-w-xl overflow-hidden
+          rounded-3xl border border-white/70 bg-white
+          shadow-[0_24px_80px_-16px_rgba(0,0,0,0.35)]
+        "
+      >
+        <div
+          className="
+            max-h-[85dvh] overflow-y-auto
+            [&>*]:box-border
+            [&>*]:m-0
+            [&>*]:w-full
+            [&>*]:max-w-none
+            [&>*]:rounded-none
+            [&>*]:border-0
+            [&>*]:shadow-none
+          "
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {steps.length > 0 ? (
+            <AgentSteps steps={steps} company={company} />
+          ) : (
+            <p className="p-6 text-lg font-semibold text-zinc-900">
+              에이전트가 진단을 준비하고 있어요
+            </p>
+          )}
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200">
-          <div
-            className="h-full rounded-full bg-brand-orange transition-[width] duration-300 ease-out"
-            style={{ width: `${localPercent}%` }}
-          />
-        </div>
-        {steps.length > 0 && (
-          <div className="mt-4">
-            <AgentSteps steps={steps} />
-          </div>
-        )}
       </div>
     </div>
   );
