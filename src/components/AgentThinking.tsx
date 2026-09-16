@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const 문구목록: Record<string, string[]> = {
+export const 문구목록: Record<string, string[]> = {
   검색: [
     "‘{이름}’ 이름이 들어간 사업장을 찾는 중…",
     "‘주식회사 {이름}’, ‘{이름}(주)’처럼 법인 표기를 바꿔 찾는 중…",
@@ -31,11 +31,14 @@ const 문구목록: Record<string, string[]> = {
   ],
 };
 
-function 채우기(문구: string, 이름: string | undefined): string {
+export function 채우기(문구: string, 이름: string | undefined): string {
   if (이름 === undefined) {
     return 문구.replace(/‘\{이름\}’|‘{이름}’|{이름}/g, "").replace(/  +/g, " ").trim();
   }
-  return 문구.replace(/\{이름\}/g, 이름);
+  return 문구.replace(/‘\{이름\}’|‘{이름}’|{이름}/g, (match) => {
+    if (match.startsWith("‘") && match.endsWith("’")) return `‘${이름}’`;
+    return 이름;
+  });
 }
 
 export default function AgentThinking({ 단계, 이름 }: { 단계: string; 이름?: string }) {
@@ -79,10 +82,10 @@ export default function AgentThinking({ 단계, 이름 }: { 단계: string; 이�
   if (순서.length === 0) return null;
 
   return (
-    <p className="mt-1 flex items-center gap-2 text-xs text-violet-700">
+    <p className="mt-1 flex items-center gap-2 text-xs text-amber-700">
       <span className="relative flex h-2 w-2 shrink-0">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-300 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
       </span>
       <span>{순서[번호 % 순서.length]}</span>
     </p>
