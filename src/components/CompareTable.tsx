@@ -53,37 +53,37 @@ export default function CompareTable({
       )}
 
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full text-sm border-collapse text-zinc-900">
           <thead>
             <tr className="border-b border-zinc-200">
-              <th className="whitespace-nowrap text-zinc-500 py-1.5 pr-3" />
+              <th className="whitespace-nowrap text-zinc-600 py-1.5 pr-3" />
               {entries.map((e) => (
                 <th
-                  key={e.사업장명}
-                  className="min-w-[9rem] px-2 text-left"
-                >
-                  <div className="font-medium text-zinc-900">{e.사업장명}</div>
-                  <button
-                    type="button"
-                    className="text-xs text-zinc-500 underline"
-                    onClick={() => onRemove(e.사업장명)}
+                    key={e.사업장명}
+                    className="min-w-[9rem] px-2 text-left"
                   >
-                    빼기
-                  </button>
-                </th>
+                    <div className="font-medium text-zinc-900">{e.사업장명}</div>
+                    <button
+                      type="button"
+                      className="text-xs text-zinc-600 underline"
+                      onClick={() => onRemove(e.사업장명)}
+                    >
+                      빼기
+                    </button>
+                  </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {CompareRows.map(({ label, render }) => (
               <tr key={label} className="border-b border-zinc-100">
-                <td className="whitespace-nowrap text-zinc-500 py-1.5 pr-3">
+                <td className="whitespace-nowrap text-zinc-600 py-1.5 pr-3">
                   {label}
                 </td>
                 {entries.map((e) => (
                   <td
                     key={e.사업장명}
-                    className="min-w-[9rem] px-2 align-top"
+                    className="min-w-[9rem] px-2 align-top text-zinc-900"
                   >
                     {render(e)}
                   </td>
@@ -94,7 +94,7 @@ export default function CompareTable({
         </table>
       </div>
 
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-2 text-xs text-zinc-600">
         업종배수와 같은 업종 안 위치는 동봉 기준선(2026-07 전국 52,957곳,
         550개 업종) 기준입니다. 회전율이 높다고 나쁜 회사라는 뜻은 아닙니다.
       </p>
