@@ -5,6 +5,7 @@ import TrendTable from "@/components/TrendTable";
 import ExplainCard from "@/components/ExplainCard";
 import AgentSteps, { type AgentStep } from "@/components/AgentSteps";
 import HiringInsight from "@/components/HiringInsight";
+import KeyNumbers from "@/components/KeyNumbers";
 import ThoughtTrail from "@/components/ThoughtTrail";
 import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 export default function Home() {
@@ -379,16 +380,18 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-zinc-50 p-6">
-      <h1 className="text-[3.1rem] font-extrabold text-center leading-tight">
+          <h1 className={phase === "result" ? "text-2xl font-extrabold text-center leading-tight" : "text-[3.1rem] font-extrabold text-center leading-tight"}>
         <span className="text-zinc-900">Work-</span>
         <span className="text-amber-600">Signal</span>
       </h1>
-      <div className="mt-1">
-        <p className="text-base text-zinc-500 text-center max-w-2xl">
-          지원하려는 회사의 인력 흐름을 입사 전에 확인해보세요.<br/>
-          직원이 얼마나 들어오고 나갔는지, 같은 업종과 비교해 쉽게 보여드려요.
-        </p>
-      </div>
+      {phase !== "result" && (
+        <div className="mt-1">
+          <p className="text-base text-zinc-500 text-center max-w-2xl">
+            지원하려는 회사의 인력 흐름을 입사 전에 확인해보세요.<br/>
+            직원이 얼마나 들어오고 나갔는지, 같은 업종과 비교해 쉽게 보여드려요.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="w-full max-w-md rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800 whitespace-pre-line">
@@ -522,7 +525,8 @@ export default function Home() {
             </aside>
             <div className="order-1 min-w-0 rounded-lg border border-zinc-200 bg-white p-4 lg:order-2 lg:col-span-8">
               <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} 추이={resultMeta?.추이} />
-          <HiringInsight rows={resultMeta?.추이} />
+              <KeyNumbers 진단결과={result} 추이={resultMeta?.추이} />
+              <HiringInsight rows={resultMeta?.추이} />
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">업종 / 지역</dt>

@@ -41,7 +41,7 @@ export default function ExplainCard({ loading, error, data, 진단결과, 추이
         <span className="text-xs text-zinc-500">Solar Pro 4</span>
       </div>
 
-      <p className="mt-2 text-base font-semibold text-zinc-900">{h.지원자_관점_요약}</p>
+      <p className="mt-2 text-xl font-bold leading-snug text-zinc-900">{h.지원자_관점_요약}</p>
 
       {h.이렇게_볼_수_있어요 && h.이렇게_볼_수_있어요.length > 0 && (
         <>
