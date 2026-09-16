@@ -10,7 +10,7 @@ export default function LoadingOverlay() {
   return (
     <div
       role="status"
-      aria-busy={state.phase !== "idle"}
+      aria-busy={true}
       aria-live="polite"
       className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm px-4"
     >

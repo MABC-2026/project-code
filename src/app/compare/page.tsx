@@ -23,8 +23,8 @@ function CompareInner() {
     const saved = sessionStorage.getItem("compareList");
     if (saved) {
       try {
-        const list: Array<{ 사업장명: string; 진단결과: any; 업종: string; 출처: string; 자료년월: string }> = JSON.parse(saved);
-        setRows(list.filter((e) => e.진단결과).map((e) => ({ name: e.사업장명, result: e.진단결과 })));
+        const list: CompareEntry[] = JSON.parse(saved);
+        setRows(list.filter((e) => e.진단결과));
       } catch {
         // 무시
       }
@@ -75,7 +75,7 @@ function CompareInner() {
         const entries: CompareEntry[] = results
           .filter((r) => r.result !== null)
           .map((r) => {
-            const d = r.result;
+            const d = r.result as CompareEntry["진단결과"];
             return {
               사업장명: r.name,
               업종: d.업종 || "",
