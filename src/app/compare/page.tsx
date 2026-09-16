@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import type { CompareEntry } from "@/components/CompareTable";
 import CompareTable from "@/components/CompareTable";
 import LoadingOverlayFallback from "@/components/LoadingOverlayFallback";
 import { 문구목록 } from "@/components/AgentThinking";
@@ -9,13 +10,26 @@ import { sampleDiagnose } from "@/lib/api";
 
 function CompareInner() {
   const router = useRouter();
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<CompareEntry[]>([]);
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState<{ 단계: string; 상태: any; 내용: string }[]>([]);
   const [loadingText, setLoadingText] = useState<string | null>(null);
   const [loadingPercent, setLoadingPercent] = useState(0);
+
+  // 세션스토리지의 compareList를 rows로 복원
+  useEffect(() => {
+    const saved = sessionStorage.getItem("compareList");
+    if (saved) {
+      try {
+        const list: Array<{ 사업장명: string; 진단결과: any; 업종: string; 출처: string; 자료년월: string }> = JSON.parse(saved);
+        setRows(list.filter((e) => e.진단결과).map((e) => ({ name: e.사업장명, result: e.진단결과 })));
+      } catch {
+        // 무시
+      }
+    }
+  }, []);
 
   const logStep = useCallback(
     (단계: string, 상태: any, 내용: string) => {
@@ -58,8 +72,21 @@ function CompareInner() {
             return { name, result: null };
           })
         );
-        setRows(results.filter((r) => r.result !== null));
-        if (rows.length === 0) {
+        const entries: CompareEntry[] = results
+          .filter((r) => r.result !== null)
+          .map((r) => {
+            const d = r.result;
+            return {
+              사업장명: r.name,
+              업종: d.업종 || "",
+              출처: "동봉 데이터",
+              자료년월: "2026-07",
+              진단결과: d,
+            };
+          });
+        setRows(entries);
+        sessionStorage.setItem("compareList", JSON.stringify(entries));
+        if (entries.length === 0) {
           setError("선택한 사업장 중 진단 가능한 곳이 없습니다.");
         }
       } catch (err: any) {
@@ -198,7 +225,17 @@ function CompareInner() {
         {/* 비교 결과 */}
         {rows.length > 0 && (
           <section className="mb-8">
-            <CompareTable rows={rows} />
+            <CompareTable
+              entries={rows}
+              onRemove={(사업장명) => {
+                setRows((prev) => prev.filter((e) => e.사업장명 !== 사업장명));
+                sessionStorage.setItem("compareList", JSON.stringify(rows.filter((e) => e.사업장명 !== 사업장명)));
+              }}
+              onClear={() => {
+                setRows([]);
+                sessionStorage.removeItem("compareList");
+              }}
+            />
           </section>
         )}
       </div>

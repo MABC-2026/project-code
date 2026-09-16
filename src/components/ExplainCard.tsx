@@ -8,37 +8,7 @@ export default function ExplainCard({ loading, error, data, 진단결과, 추이
           <h3 className="text-sm font-semibold text-zinc-900">지원자 관점 해설</h3>
           <span className="text-xs text-zinc-500">Solar Pro 4</span>
         </div>
-        <ul className="mt-2 space-y-1 text-sm text-zinc-800">
-          <li>✓ 이번 달: 인원 {진단결과?.순증감 > 0 ? "+" : ""}{진단결과?.순증감?.toLocaleString("ko-KR") ?? "0"}명 · 드나든 사람 {진단결과?.총이동?.toLocaleString("ko-KR") ?? "0"}명</li>
-          {추이 && 추이.length >= 6 && (() => {
-            const _sorted = [...추이].sort((a, b) => a.자료년월.localeCompare(b.자료년월));
-            const _first = _sorted[0];
-            const _last = _sorted[_sorted.length - 1];
-            const _diff = _last.가입자수 - _first.가입자수;
-            const _월키 = (진단결과?.순증감 ?? 0) / (진단결과?.가입자수 ?? 1) > 0.005 ? "늘" : (진단결과?.순증감 ?? 0) / (진단결과?.가입자수 ?? 1) < -0.005 ? "줄" : "그대로";
-            const _연키 = _diff / _first.가입자수 > 0.01 ? "늘" : _diff / _first.가입자수 < -0.01 ? "줄" : "그대로";
-            const _월방향 = { 늘: "늘어난 달", 줄: "줄어든 달", 그대로: "거의 그대로인 달" }[_월키];
-            const _연방향 = { 늘: "늘어나는 흐름", 줄: "줄어드는 흐름", 그대로: "거의 그대로인 흐름" }[_연키];
-            return (
-              <>
-                <li>✓ 1년: {_first.가입자수.toLocaleString("ko-KR")}명 → {_last.가입자수.toLocaleString("ko-KR")}명 ({_diff > 0 ? "+" : ""}{_diff.toLocaleString("ko-KR")}명)</li>
-                {_월키 === _연키 ? (
-                  <li className="text-violet-700">→ 한 달과 1년이 같은 방향이에요 ({_연방향}).</li>
-                ) : (
-                  <li className="font-medium text-violet-700">↻ 한 달만 보면 {_월방향}이었는데, 1년을 보면 {_연방향}이에요. 1년 흐름을 기준으로 볼게요.</li>
-                )}
-              </>
-            );
-          })()}
-          {((() => {
-            const _신규합 = 추이?.reduce((s: number, r: any) => s + r.신규, 0) ?? 0;
-            const _상실합 = 추이?.reduce((s: number, r: any) => s + r.상실, 0) ?? 0;
-            if (_신규합 <= 0) return null;
-            const _충원퍼 = Math.round(Math.min(_신규합, _상실합) / _신규합 * 100);
-            return <li>✓ 채용: 신규취득 {_신규합.toLocaleString("ko-KR")}명 중 빈자리 채우기 {_충원퍼}%</li>;
-          })())}
-          <AgentThinking 단계="해설" />
-        </ul>
+        <div className="mt-2"><AgentThinking 단계="해설" /></div>
       </section>
     );
   }
@@ -71,7 +41,7 @@ export default function ExplainCard({ loading, error, data, 진단결과, 추이
         <span className="text-xs text-zinc-500">Solar Pro 4</span>
       </div>
 
-      <p className="mt-2 text-base font-semibold text-zinc-900">{h.지원자_관점_요약}</p>
+      <p className="mt-2 text-xl font-bold leading-snug text-zinc-900">{h.지원자_관점_요약}</p>
 
       {h.이렇게_볼_수_있어요 && h.이렇게_볼_수_있어요.length > 0 && (
         <>
@@ -94,9 +64,14 @@ export default function ExplainCard({ loading, error, data, 진단결과, 추이
       {h.지원_전에_확인해보세요 && h.지원_전에_확인해보세요.length > 0 && (
         <>
           <p className="mt-3 text-xs font-medium text-zinc-500">지원 전에 확인해보세요</p>
-          <ul className="mt-1 list-disc pl-5 text-sm text-zinc-800">
+          <ul className="mt-2 grid gap-2 sm:grid-cols-3">
             {h.지원_전에_확인해보세요.map((문장: string, i: number) => (
-              <li key={i}>{문장}</li>
+              <li
+                key={i}
+                className="rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-800"
+              >
+                {문장}
+              </li>
             ))}
           </ul>
         </>

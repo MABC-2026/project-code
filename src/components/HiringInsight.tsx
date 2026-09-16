@@ -1,3 +1,6 @@
+import React from "react";
+import FlowChart from "./FlowChart";
+
 export default function HiringInsight({
   rows,
 }: {
@@ -183,21 +186,23 @@ export default function HiringInsight({
         <span className="text-xs text-zinc-500">최근 {n}개월 · 국민연금 기록</span>
       </div>
 
+      <FlowChart 추이={rows} />
+
       <p className="mt-3 text-xs font-medium text-zinc-500">채용의 성격</p>
       {채용성격문장}
 
       {신규합 > 0 && (
         <>
           <div className="mt-2 flex h-3 w-full overflow-hidden rounded bg-zinc-100">
-            <div className="h-full bg-zinc-600" style={{ width: `${충원퍼}%` }} />
-            <div className="h-full bg-brand-orange" style={{ width: `${증원퍼}%` }} />
+            <div className="h-full bg-zinc-700" style={{ width: `${충원퍼}%` }} />
+            <div className="h-full bg-emerald-500" style={{ width: `${증원퍼}%` }} />
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-zinc-600">
             <span>
               <span className="text-zinc-700">■</span> 빈자리 채우기 {strings.충원}명 ({strings.충원퍼})
             </span>
             <span>
-              <span className="text-brand-orange">■</span> 늘어난 자리 {strings.증원}명 ({strings.증원퍼})
+              <span className="text-emerald-500">■</span> 늘어난 자리 {strings.증원}명 ({strings.증원퍼})
             </span>
           </div>
           <p className="mt-1 text-xs text-zinc-500">

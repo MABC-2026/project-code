@@ -14,8 +14,33 @@ function CandidatesInner() {
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [loadingText, setLoadingText] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(1);
   const pageSize = 15;
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const queryPage = searchParams.get("page");
+    if (queryPage !== null) {
+      const p = Number(queryPage);
+      if (Number.isFinite(p) && p >= 1) {
+        setPage(p);
+        return;
+      }
+    }
+    const saved = sessionStorage.getItem("candidatesPage");
+    if (saved !== null) {
+      const p = Number(saved);
+      if (Number.isFinite(p) && p >= 1) {
+        setPage(p);
+        return;
+      }
+    }
+  }, []);
+
+  // 현재 페이지를 세션스토리지에 남겨, 결과 페이지 뒤로그 및 브라우저 뒤로가기 시 복구한다.
+  useEffect(() => {
+    sessionStorage.setItem("candidatesPage", String(page));
+  }, [page]);
   const logStep = useCallback(
     (단계: string, 상태: AgentStep["상태"], 내용: string) => {
       setSteps((prev) => {
@@ -45,9 +70,23 @@ function CandidatesInner() {
     if (savedCompany) {
       setCompany(savedCompany);
     }
-    if (savedPage) {
+    // URL 쿼리 파라미터에서 페이지 번호를 읽는다 (뒤로가기 시 쿼리 포함).
+    const searchParams = new URLSearchParams(window.location.search);
+    const queryPage = searchParams.get("page");
+    let targetPage: number | null = null;
+    if (queryPage !== null) {
+      const p = parseInt(queryPage, 10);
+      if (!isNaN(p) && p >= 1) targetPage = p;
+    }
+    if (targetPage === null && savedPage) {
       const p = parseInt(savedPage, 10);
-      if (!isNaN(p) && p >= 1) setPage(p);
+      if (!isNaN(p) && p >= 1) targetPage = p;
+    }
+    if (targetPage !== null) {
+      setPage(targetPage);
+    }
+    // 세션스토리지의 페이지 번호는 한 번만 소비한다.
+    if (savedPage) {
       sessionStorage.removeItem("candidatesPage");
     }
   }, []);
@@ -57,6 +96,7 @@ function CandidatesInner() {
       const c = candidates.find((c) => c.번호 === 번호);
       if (!c) {
         setError("후보가 없습니다.");
+        setLoading(false);
         router.push("/");
         return;
       }
@@ -129,9 +169,9 @@ function CandidatesInner() {
               }));
               sessionStorage.setItem("diagSteps", JSON.stringify(steps));
               sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
-              console.log("[DEBUG] Saving prevCandidatesPage:", page);
               sessionStorage.setItem("prevCandidatesPage", JSON.stringify(page));
-              router.push("/result");
+              setLoading(false);
+              router.push(`/result?page=${page}`);
               return;
             }
           } catch (wpErr: any) {
@@ -162,14 +202,15 @@ function CandidatesInner() {
               }));
               sessionStorage.setItem("diagSteps", JSON.stringify(steps));
               sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
-              console.log("[DEBUG] Saving prevCandidatesPage:", page);
               sessionStorage.setItem("prevCandidatesPage", JSON.stringify(page));
-              router.push("/result");
+              setLoading(false);
+              router.push(`/result?page=${page}`);
               return;
             }
             setError(
               `공공데이터로 진단하지 못했어요 (${workplaceFailReason}). 동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)에도 없는 사업장이에요.`
             );
+            setLoading(false);
             router.push("/");
             return;
           }
@@ -197,23 +238,25 @@ function CandidatesInner() {
             sessionStorage.setItem("diagSteps", JSON.stringify(steps));
             sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
             sessionStorage.setItem("prevCandidatesPage", JSON.stringify(page));
-            router.push("/result");
+            setLoading(false);
+            router.push(`/result?page=${page}`);
             return;
           }
           setError(
             `${c.사업장명}은(는) 동봉 데이터(2026-07, 가입자 30명 이상 52,957곳)에 없는 사업장입니다.`
           );
+          setLoading(false);
           router.push("/");
           return;
         }
 
         setError("진단 결과를 받지 못했습니다.");
+        setLoading(false);
         router.push("/");
       } catch (err: any) {
         setError(err.message || "선택 중 오류");
-        router.push("/");
-      } finally {
         setLoading(false);
+        router.push("/");
       }
     },
     [candidates, router, logStep, steps, page]
@@ -227,7 +270,7 @@ function CandidatesInner() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* 내비게이션 */}
-      <nav className="sticky top-5 z-40 mx-4 max-w-[1200px] w-full">
+      <nav className="sticky top-5 z-40 mx-auto w-[calc(100%-2rem)] max-w-[1200px]">
         <div className="card-white flex h-[72px] items-center justify-between px-5 lg:px-8">
           <a
             href="/"
@@ -292,12 +335,6 @@ function CandidatesInner() {
                   총 {candidates.length}건
                 </span>
               </div>
-              <p className="text-sm text-[var(--text-zinc-500)]">
-                {candidates.length > 0 &&
-                  candidates[0]?.source === "nps"
-                    ? "국민연금(NPS) 공공데이터에서 찾았습니다. 사업장을 선택하면 진단합니다."
-                    : "동봉 데이터에서 찾았습니다. 사업장을 선택하면 진단합니다."}
-              </p>
             </div>
 
             {/* 목록 카드 */}

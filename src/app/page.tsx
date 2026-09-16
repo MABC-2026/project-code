@@ -274,7 +274,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* 내비게이션 — 떠 있는 흰색 바 */}
-      <nav className="sticky top-5 z-40 mx-4 max-w-[1200px] w-full">
+      <nav className="sticky top-5 z-40 mx-auto w-[calc(100%-2rem)] max-w-[1200px]">
         <div className="card-white flex h-[72px] items-center justify-between px-5 lg:px-8">
           <a
             href="#search-hero"
@@ -378,10 +378,10 @@ export default function Home() {
             <div className="mt-8 w-full max-w-[680px] shrink-0">
               <form
                 onSubmit={handleSearch}
-                className="flex items-center gap-3 overflow-hidden rounded-[16px] border border-[var(--border-default)] bg-[var(--bg-card)] py-0 shadow-[0_6px_18px_-8px_rgba(0,0,0,0.08)]"
+                className="flex overflow-hidden rounded-[16px] border border-[var(--border-default)] bg-white shadow-[0_6px_18px_-8px_rgba(0,0,0,0.08)] focus-within:border-[var(--brand-orange)] focus-within:ring-2 focus-within:ring-[var(--brand-orange)]/50"
               >
                 <input
-                  className="flex-1 min-w-0 rounded-[16px] border-0 bg-[var(--bg-zinc-50)] px-5 py-[14px] text-[16px] text-[var(--foreground)] placeholder-[var(--text-zinc-400)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-orange)]/50"
+                  className="flex-1 min-w-0 border-0 bg-transparent px-5 py-[14px] text-[16px] text-[var(--foreground)] placeholder-[var(--text-zinc-400)] focus:outline-none"
                   type="text"
                   placeholder="회사·사업장명을 입력하세요 (예: 기아, 쿠팡)"
                   value={company}
@@ -389,31 +389,15 @@ export default function Home() {
                   aria-label="회사명 입력"
                 />
                 <button
-                  className="shrink-0 rounded-[14px] bg-[var(--brand-orange)] px-6 py-[12px] text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-orange-dark)] focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 self-stretch bg-[var(--brand-orange)] px-6 text-[15px] font-semibold text-white transition-colors hover:bg-[var(--brand-orange-dark)] focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   type="submit"
                   disabled={loading || !company.trim()}
                 >
                   {loading ? (
                     <span className="inline-flex items-center justify-center gap-2">
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
+                      <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
                       검색 중
                     </span>
@@ -906,9 +890,8 @@ export default function Home() {
                   관심 있는 기업,{" "}
                   <span className="text-[var(--brand-orange)]">Work-Signal</span>로 살펴보세요
                 </h2>
-                <p className="mt-3 max-w-lg text-[var(--text-zinc-500)] sm:text-lg">
-                  회사명 하나만 입력하면 인력 흐름과 업종 비교를 바로 확인할 수
-                  있어요.
+                <p className="mt-3 max-w-2xl text-[var(--text-zinc-500)] sm:text-lg">
+                  회사명 하나만 입력하면 인력 흐름과 업종 비교를 바로 확인할 수 있어요.
                 </p>
                 <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <a
@@ -939,25 +922,23 @@ export default function Home() {
             <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <form
                 onSubmit={handleSearch}
-                className="w-full max-w-[560px] overflow-hidden rounded-[14px] border border-[var(--border-default)] bg-[var(--bg-card)] px-5 py-0 shadow-sm"
+                className="flex w-full max-w-[560px] overflow-hidden rounded-[14px] border border-[var(--border-default)] bg-white shadow-sm focus-within:border-[var(--brand-orange)] focus-within:ring-2 focus-within:ring-[var(--brand-orange)]/50"
               >
-                <div className="flex gap-3">
-                  <input
-                    className="flex-1 min-w-0 rounded-[14px] border-0 bg-[var(--bg-zinc-50)] px-4 py-[13px] text-[15px] text-[var(--foreground)] placeholder-[var(--text-zinc-400)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-orange)]/50 sm:rounded-none sm:px-4 sm:py-[13px]"
-                    type="text"
-                    placeholder="회사·사업장명을 입력하세요"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    aria-label="회사명 입력"
-                  />
-                  <button
-                    className="shrink-0 rounded-[12px] bg-[var(--brand-orange)] px-5 py-[11px] text-[14px] font-semibold text-white transition-colors hover:bg-[var(--brand-orange-dark)] focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed sm:rounded-l-none"
-                    type="submit"
-                    disabled={loading || !company.trim()}
-                  >
-                    검색
-                  </button>
-                </div>
+                <input
+                  className="flex-1 min-w-0 border-0 bg-transparent px-4 py-[13px] text-[15px] text-[var(--foreground)] placeholder-[var(--text-zinc-400)] focus:outline-none"
+                  type="text"
+                  placeholder="회사·사업장명을 입력하세요"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  aria-label="회사명 입력"
+                />
+                <button
+                  className="shrink-0 self-stretch bg-[var(--brand-orange)] px-5 text-[14px] font-semibold text-white transition-colors hover:bg-[var(--brand-orange-dark)] focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="submit"
+                  disabled={loading || !company.trim()}
+                >
+                  검색
+                </button>
               </form>
             </div>
           </div>
@@ -976,9 +957,8 @@ export default function Home() {
               <span className="ml-2 text-xs">— 기업 인력 흐름 확인</span>
             </div>
             <p className="max-w-md text-xs leading-relaxed text-[var(--text-zinc-500)]">
-              국민연금 공공데이터와 동봉 데이터(2026년 7월 기준, 전국
-              52,957곳)를 바탕으로 인력 이동을 정리해 보여드립니다. 수치는
-              참고용이며 기업의 안정성이나 채용 가능성을 보장하지 않습니다.
+              국민연금 공공데이터와 동봉 데이터를 바탕으로 인력 이동을 정리해 보여드립니다. <br></br>
+              수치는 참고용이며 기업의 안정성이나 채용 가능성을 보장하지 않습니다.
             </p>
           </div>
         </footer>
