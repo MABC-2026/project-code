@@ -47,44 +47,20 @@ description: 회사·기업의 인력 안정성을 국민연금 가입 사업장
 ## 파일 배치와 각 폴더를 읽는 시점
 
 ```
-workplace-workforce-stability-assessment/
-├── api/                          # Vercel Python 서버리스 함수
-│   └── diagnose.py               ← POST /api/diagnose  (251줄)
-├── scripts/                      # 로컬 검증/개발용 스크립트
-│   └── test_nps_search.py        ← NPS API 로컬 테스트 (109줄)
-├── skill/                        # 스킬 패키지 (MABC 제출물)
-│   ├── SKILL.md                  ← 이 파일. 스킬 진입점·원칙·절차·예외
-│   ├── scripts/
-│   │   ├── stability.py          ← 지표 계산. 실행의 중심. 항상 이것으로 숫자를 만든다 (719줄, stdlib only)
-│   │   └── extract_sample.py     ← 원본 공개데이터에서 sample_workplaces.csv·industry_baseline.csv를 재생성할 때만 쓴다 (평소엔 안 씀)
-│   ├── references/
-│   │   ├── metrics.md            ← 지표 정의·임계값·근거·한계를 물을 때 읽는다. 기준이 궁금하면 여기 (197줄)
-│   │   └── (없음 확인)
-│   └── assets/                   ← 고정 데이터
-│       ├── sample_workplaces.csv ← 사용자가 파일 안 줬을 때 무입력 폴백으로 쓰는 공개 데이터 실측 샘플 (1,990개소)
-│       ├── industry_baseline.csv ← 업종별 월 회전율 중앙값 271개 업종. **업종배수 계산에 반드시 필요한 파일** — stability.py가 업종배수를 낼 때 이걸 기준선으로 쓴다
-│       └── report_template.md    ← 출력 구조 고정. 출력 전에 이 템플릿을 보고 구조가 맞는지 확인한다
-├── src/app/                      # Next.js App Router 프론트엔드
-│   ├── page.tsx                  ← 메인 UI (400줄)
-│   ├── layout.tsx                ← 루트 레이아웃·메타·폰트 (29줄)
-│   ├── globals.css               ← Tailwind 4 + 다크모드 (26줄)
-│   ├── favicon.ico               ← 파비콘 (vaiable)
-│   └── api/
-│       └── nps/
-│           └── search/
-│               └── route.ts      ← GET /api/nps/search (NPS API 프록시, 215줄)
-├── .env.example                  ← 환경변수 템플릿 (NPS_API_KEY=***
-├── AGENTS.md                     ← Next.js 에이전트 규칙 (자동 생성)
-├── LICENSE                       ← MIT (MABC 2026-알잘딱깔센)
-├── README.md                     ← "# project-code" (미작성)
-├── diagnose.py                   ← [루트엔 없음 — api/diagnose.py만 존재]
-├── next-env.d.ts                 ← Next 타입 참조 (자동 생성)
-├── next.config.ts                ← NextConfig 빈 객체
-├── package.json                  ← next 16.3.5 / react 19.2.8 / tailwind 4
-├── package-lock.json             ← 락 파일 (6,783줄)
-├── postcss.config.mjs            ← @tailwindcss/postcss 플러그인
-└── tsconfig.json                 ← TS5, path alias @/* → ./src/*
+skill/
+├── SKILL.md ← 이 파일. 스킬 진입점·원칙·절차·예외
+├── scripts/
+│   ├── stability.py ← 지표 계산. 항상 이것으로 숫자를 만든다 (표준 라이브러리만 사용)
+│   └── extract_sample.py ← 원본 공개데이터에서 assets 의 CSV 두 개를 다시 만들 때만 쓴다
+├── references/
+│   └── metrics.md ← 지표 정의·임계값·실측 근거·한계·출처. 기준이 궁금하면 여기
+└── assets/
+    ├── sample_workplaces.csv ← 입력 파일이 없을 때 쓰는 동봉 데이터. 2026-07 가입자 30명 이상 등록 사업장 52,957곳
+    ├── industry_baseline.csv ← 업종 기준선 550개 업종(월 회전율 중앙값·p25·p75·p90). 업종배수 계산에 반드시 필요
+    └── report_template.md ← 출력 구조 고정. 출력 전에 이 템플릿으로 구조를 맞춘다
 ```
+
+이 스킬을 웹 서비스(`src/`, `api/`)가 어떻게 호출하는지는 저장소 루트의 README.md 에 정리했다.
 
 ---
 
@@ -98,7 +74,7 @@ workplace-workforce-stability-assessment/
 
 ### 2. 입력 확인 및 무입력 폴백
 
-사업장 CSV가 있으면 그 경로를 쓴다. **없으면 되묻지 말고 `assets/sample_workplaces.csv`(공개 데이터 실측 샘플 1,990개소)로 전체 절차를 시연한다.** 결과 최상단에 출처와 샘플 사실을 밝힌다.
+사업장 CSV가 있으면 그 경로를 쓴다. **없으면 되묻지 말고 동봉 데이터 `assets/sample_workplaces.csv`(2026-07 기준 가입자 30명 이상 등록 사업장 52,957곳)로 전체 절차를 시연한다.** 결과 최상단에 출처와 동봉 데이터를 썼다는 사실을 밝힌다.
 
 ### 3. 지표 계산 — 실행한다. 숫자를 직접 만들지 않는다.
 
@@ -146,7 +122,7 @@ workplace-workforce-stability-assessment/
 
 | 상황 | 처리 |
 |---|---|
-| 데이터 파일이 없음 | 되묻지 말고 동봉 샘플(`assets/sample_workplaces.csv`)로 시연. 출처와 샘플 사실을 결과 최상단에 명시 |
+| 데이터 파일이 없음 | 되묻지 말고 동봉 데이터(`assets/sample_workplaces.csv`, 52,957곳)로 시연. 출처와 동봉 데이터를 썼다는 사실을 결과 최상단에 명시 |
 | 필수 컬럼을 못 찾음 | 스크립트가 발견된 헤더와 함께 중단한다. 그 메시지를 사용자에게 전달하고 어느 컬럼이 해당하는지 물어본다 |
 | 회사명을 못 찾음 | 국민연금 사업장명은 **법인명 기준**이라 브랜드명과 다를 수 있음을 안내하고, 부분 검색어를 다시 받는다 |
 | 검색 결과가 여러 사업장 | 대기업은 본사·공장·지점이 별도 사업장이다. 합산하지 말고 각각 보여주며 그 사실을 설명한다 |
@@ -168,7 +144,7 @@ workplace-workforce-stability-assessment/
 - [ ] 회전율을 이직률로 단정하지 않았는가
 - [ ] 상한 도달 사업장에 "실제 급여는 이보다 높다"가 붙었는가
 - [ ] 자료가 7월·1월이면 인사이동 경고가 붙었는가
-- [ ] 샘플로 돌렸다면 출처와 샘플 사실이 최상단에 있는가
+- [ ] 동봉 데이터로 돌렸다면 출처와 그 사실이 최상단에 있는가
 - [ ] 숫자가 전부 스크립트 출력값인가 (모델이 지어낸 값이 없는가)
 
 ---
@@ -201,3 +177,13 @@ workplace-workforce-stability-assessment/
 - 급여 수준을 단정하지 않는다.
 - 특정 사업장을 지목해 부정적으로 서술하지 않는다.
 - 사용자의 판단을 대신하지 않는다.
+
+---
+
+## 출처
+
+- 데이터: 국민연금공단 「국민연금공단_국민연금 가입 사업장 내역」 (공공데이터포털 파일데이터, 월간 CSV) — https://www.data.go.kr/data/15083277/fileData.do · 동봉 데이터와 업종 기준선은 2026-07 자료로 만들었다.
+- 같은 자료의 오픈API (웹 서비스가 최근 12개월 기록을 조회할 때 사용) — https://www.data.go.kr/data/3046071/openapi.do
+- 보험료율: 국민연금공단 「연금보험료」 안내 — 2025년까지 9%, 2026년부터 해마다 0.5%p씩 올라 2033년 13%. 추정 평균 기준소득월액은 자료 연도의 보험료율로 역산한다 (2026년 9.5%) — https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0038M0.do
+- 기준소득월액 상한: 국민연금공단 「2026년도 국민연금 기준소득월액 상·하한액 조정 안내」 — 2026-07 ~ 2027-06 상한 6,590,000원 — https://www.nps.or.kr/pnsgdnc/newgdnc/getOHAE0001M1.do?menuId=MN24000897&pstId=NE202500000000030479
+- 지표 정의·임계값·실측 근거: `references/metrics.md`

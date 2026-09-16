@@ -7,6 +7,9 @@ import TrendTable from "@/components/TrendTable";
 import ExplainCard from "@/components/ExplainCard";
 import AgentSteps, { type AgentStep } from "@/components/AgentSteps";
 import HiringInsight from "@/components/HiringInsight";
+import KeyNumbers from "@/components/KeyNumbers";
+import IndustryPosition from "@/components/IndustryPosition";
+import ThoughtTrail from "@/components/ThoughtTrail";
 import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 import FullPageLoader from "@/components/FullPageLoader";
 
