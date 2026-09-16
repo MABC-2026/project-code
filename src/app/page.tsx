@@ -273,25 +273,26 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* 내비게이션 */}
-      <nav className="sticky top-0 z-40 border-b border-border-default bg-bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-bg-card/80">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 py-2 sm:px-6 lg:px-8">
+      {/* 내비게이션 — 떠 있는 흰색 바 */}
+      <nav className="sticky top-5 z-40 mx-4 max-w-[1200px] w-full">
+        <div className="card-white flex h-[72px] items-center justify-between px-5 lg:px-8">
           <a
             href="#search-hero"
-            className="flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 rounded"
+            className="brand-mark outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg px-1 -ml-1"
           >
-            <span className="text-brand-black font-bold tracking-tight">
+            <span className="text-[var(--brand-black)] font-bold tracking-tight text-[22px] sm:text-[26px]">
               Work-
             </span>
-            <span className="text-brand-orange font-bold tracking-tight">
+            <span className="text-[var(--brand-orange)] font-bold tracking-tight text-[22px] sm:text-[26px]">
               Signal
             </span>
           </a>
-          <ul className="hidden items-center gap-6 sm:gap-10 font-medium text-foreground lg:flex">
+
+          <ul className="hidden items-center gap-7 font-medium text-[var(--text-body)] lg:flex">
             <li>
               <a
                 href="#about-section"
-                className="text-foreground/70 hover:text-brand-orange transition-colors focus-visible:text-brand-orange"
+                className="text-[var(--text-zinc-500)] hover:text-[var(--brand-orange)] transition-colors focus-visible:text-[var(--brand-orange)]"
               >
                 서비스 소개
               </a>
@@ -299,7 +300,7 @@ export default function Home() {
             <li>
               <a
                 href="#features-section"
-                className="text-foreground/70 hover:text-brand-orange transition-colors focus-visible:text-brand-orange"
+                className="text-[var(--text-zinc-500)] hover:text-[var(--brand-orange)] transition-colors focus-visible:text-[var(--brand-orange)]"
               >
                 제공 정보
               </a>
@@ -307,15 +308,16 @@ export default function Home() {
             <li>
               <a
                 href="#howto-section"
-                className="text-foreground/70 hover:text-brand-orange transition-colors focus-visible:text-brand-orange"
+                className="text-[var(--text-zinc-500)] hover:text-[var(--brand-orange)] transition-colors focus-visible:text-[var(--brand-orange)]"
               >
                 이용 방법
               </a>
             </li>
           </ul>
+
           <a
             href="#search-hero"
-            className="hidden rounded-xl border border-border-default bg-bg-card px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 sm:inline-flex sm:items-center sm:justify-center sm:gap-2"
+            className="btn-filled-orange text-sm"
           >
             <svg
               className="size-4"
@@ -333,126 +335,112 @@ export default function Home() {
             기업 검색
           </a>
         </div>
-        <div className="flex border-t border-border-default bg-bg-card px-5 py-3 sm:hidden">
-          <div className="flex flex-col gap-2">
-            <a
-              href="#about-section"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              서비스 소개
-            </a>
-            <a
-              href="#features-section"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              제공 정보
-            </a>
-            <a
-              href="#howto-section"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-            >
-              이용 방법
-            </a>
-            <a
-              href="#search-hero"
-              className="mt-1 inline-flex items-center justify-center rounded-xl border border-brand-orange bg-brand-orange text-white px-4 py-2 text-sm font-medium hover:bg-brand-orange-dark transition-colors focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
-            >
-              기업 검색
-            </a>
-          </div>
-        </div>
       </nav>
 
       {/* 페이지 콘텐츠 */}
-      <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-6 lg:px-8 flex-1">
+      <div className="mx-auto w-full max-w-[1200px] px-5 py-6 sm:px-6 lg:px-8 flex-1">
         {/* ===== 히어로 배너 ===== */}
         <section
           id="search-hero"
-          className="relative overflow-hidden rounded-2xl border border-border-default bg-gradient-to-b from-orange-50/40 via-white to-white bg-bg-card p-8 sm:p-10 lg:p-12 shadow-sm"
+          className="hero-bg relative overflow-hidden rounded-[24px] py-10 sm:py-14 lg:py-16 px-6 sm:px-10 lg:px-12"
         >
-          <div className="pointer-events-none absolute -right-40 -bottom-40 h-96 w-96 rounded-full bg-orange-200/20 blur-3xl" />
-          <div className="pointer-events-none absolute -left-40 -top-40 h-80 w-80 rounded-full bg-amber-200/20 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-24 w-3/4 -translate-y-1/2 rounded-full bg-white/60 blur-2xl" />
-          <div className="pointer-events-none absolute bottom-0 right-1/4 h-20 w-1/3 rounded-full bg-white/70 blur-2xl" />
-          <div className="relative mx-auto flex max-w-3xl flex-col items-center text-center">
-            <span className="mb-5 inline-flex items-center rounded-full border border-brand-orange/20 bg-bg-info px-4 py-1 text-xs font-medium text-brand-orange-dark">
+          {/* 하단 흰색 안개 장식 */}
+          <div className="hero-fog" aria-hidden="true">
+            <div className="absolute left-1/4 top-0 h-28 w-4/5 rounded-full bg-white/70 blur-[3rem]" />
+            <div className="absolute right-1/4 top-0 h-20 w-2/3 rounded-full bg-white/80 blur-[2rem]" />
+            <div className="absolute left-0 right-0 top-0 h-10 rounded-full bg-white/90 blur-[2rem]" />
+          </div>
+
+          <div className="relative mx-auto flex w-full max-w-[880px] flex-col items-center text-center">
+            {/* 상단 배지 */}
+            <span className="badge-subtle mb-5">
               국민연금 데이터 기반 기업 정보
             </span>
-            <h1 className="mb-4 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
-              <span className="text-brand-black">Work-</span>
-              <span className="text-brand-orange">Signal</span>
+
+            {/* 워드마크 */}
+            <h1 className="mb-4 text-balance brand-mark">
+              <span className="text-[var(--brand-black)] font-bold tracking-tight text-[56px] sm:text-[64px] lg:text-[72px]">
+                Work-
+              </span>
+              <span className="text-[var(--brand-orange)] font-bold tracking-tight text-[56px] sm:text-[64px] lg:text-[72px]">
+                Signal
+              </span>
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-zinc-500 sm:text-xl">
+
+            {/* 소개 문구 */}
+            <p className="text-balance max-w-[680px] text-[18px] sm:text-[20px] leading-[1.55] text-[var(--text-zinc-600)] sm:text-[var(--text-zinc-600)]">
               지원하려는 회사의 인력 흐름을 입사 전에 확인해보세요.
-              <br />
+              <br className="hidden sm:block" />
               직원이 얼마나 들어오고 나가는지, 같은 업종과 비교해 쉽게 보여드려요.
             </p>
-            {loading && (
-              <div className="mt-8 w-full max-w-xl">
-                <form
-                  onSubmit={handleSearch}
-                  className="flex flex-col items-center gap-3 rounded-xl border border-border-default bg-bg-card py-2 shadow-md sm:flex-row sm:py-0"
+
+            {/* 검색 폼 — 고정 높이, 스크롤 없이 표시되도록 */}
+            <div className="mt-8 w-full max-w-[680px] shrink-0">
+              <form
+                onSubmit={handleSearch}
+                className="flex items-center gap-3 overflow-hidden rounded-[16px] border border-[var(--border-default)] bg-[var(--bg-card)] py-0 shadow-[0_6px_18px_-8px_rgba(0,0,0,0.08)]"
+              >
+                <input
+                  className="flex-1 min-w-0 rounded-[16px] border-0 bg-[var(--bg-zinc-50)] px-5 py-[14px] text-[16px] text-[var(--foreground)] placeholder-[var(--text-zinc-400)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-orange)]/50"
+                  type="text"
+                  placeholder="회사·사업장명을 입력하세요 (예: 기아, 쿠팡)"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  aria-label="회사명 입력"
+                />
+                <button
+                  className="shrink-0 rounded-[14px] bg-[var(--brand-orange)] px-6 py-[12px] text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-[var(--brand-orange-dark)] focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="submit"
+                  disabled={loading || !company.trim()}
                 >
-                  <input
-                    className="w-full rounded-xl border-0 bg-zinc-50 px-5 py-3 text-foreground placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-orange/60 sm:w-auto sm:rounded-l-xl sm:px-5 sm:py-3"
-                    type="text"
-                    placeholder="회사·사업장명을 입력하세요 (예: 기아, 쿠팡)"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    aria-label="회사명 입력"
-                  />
+                  {loading ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <svg
+                        className="h-4 w-4 animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      검색 중
+                    </span>
+                  ) : (
+                    "검색"
+                  )}
+                </button>
+              </form>
+
+              {/* 안내 패널 */}
+              <div className="mt-3 rounded-[16px] border border-[var(--border-default)] bg-[var(--bg-orange-light)] p-4 text-left shadow-[0_2px_6px_rgba(0,0,0,0.02)]">
+                <p className="text-[15px] font-semibold text-[var(--text-zinc-800)]">
+                  정확한 법인명을 모르시나요?
+                </p>
+                <p className="mt-1 text-[14px] text-[var(--text-zinc-600)]">
+                  알고 있는 회사명 + &lsquo;회사&rsquo;로 검색해 법인명을
+                  확인해주세요
+                </p>
+                <p className="mt-2 text-xs text-[var(--text-zinc-500)]">
+                  예) 토스 회사 → 비바리퍼블리카 / 배민 회사 → 우아한형제들
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-zinc-500)]">
+                  *KT, LG 같은 영문 약자는 케이티, 엘지로도 검색해 보세요
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
-                    className="m-2 min-w-[120px] rounded-xl bg-brand-orange px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed sm:m-0"
-                    type="submit"
-                    disabled={loading || !company.trim()}
-                  >
-                    {loading ? (
-                      <span className="inline-flex items-center justify-center gap-2">
-                        <svg
-                          className="h-4 w-4 animate-spin"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                          />
-                        </svg>
-                        검색 중
-                      </span>
-                    ) : (
-                      "검색"
-                    )}
-                  </button>
-                </form>
-                <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border-info bg-bg-info/80 p-4 text-left shadow-sm sm:max-w-lg">
-                  <p className="text-sm font-semibold text-info-title">
-                    정확한 법인명을 모르시나요?
-                  </p>
-                  <p className="text-sm text-zinc-700">
-                    알고 있는 회사명 + &lsquo;회사&rsquo;로 검색해 법인명을
-                    확인해주세요
-                  </p>
-                  <p className="mt-2 text-xs text-zinc-600">
-                    예) 토스 회사 → 비바리퍼블리카 / 배민 회사 → 우아한형제들
-                  </p>
-                  <p className="text-xs text-zinc-600">
-                    *KT, LG 같은 영문 약자는 케이티, 엘지로도 검색해 보세요
-                  </p>
-                </div>
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                  <button
-                    className="rounded-xl border border-border-default bg-bg-card px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                    className="btn-ghost-secondary text-sm"
                     onClick={handleShowReport}
                     disabled={loading}
                   >
@@ -460,81 +448,7 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-            )}
-            {!loading && (
-              <div className="mt-8 w-full max-w-xl">
-                <form
-                  onSubmit={handleSearch}
-                  className="flex flex-col items-center gap-3 rounded-xl border border-border-default bg-bg-card py-2 shadow-md sm:flex-row sm:py-0"
-                >
-                  <input
-                    className="w-full rounded-xl border-0 bg-zinc-50 px-5 py-3 text-foreground placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-orange/60 sm:w-auto sm:rounded-l-xl sm:px-5 sm:py-3"
-                    type="text"
-                    placeholder="회사·사업장명을 입력하세요 (예: 기아, 쿠팡)"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    aria-label="회사명 입력"
-                  />
-                  <button
-                    className="m-2 min-w-[120px] rounded-xl bg-brand-orange px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed sm:m-0"
-                    type="submit"
-                    disabled={loading || !company.trim()}
-                  >
-                    {loading ? (
-                      <span className="inline-flex items-center justify-center gap-2">
-                        <svg
-                          className="h-4 w-4 animate-spin"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                          />
-                        </svg>
-                        검색 중
-                      </span>
-                    ) : (
-                      "검색"
-                    )}
-                  </button>
-                </form>
-                <div className="mt-3 flex flex-col gap-2 rounded-xl border border-border-info bg-bg-info/80 p-4 text-left shadow-sm sm:max-w-lg">
-                  <p className="text-sm font-semibold text-info-title">
-                    정확한 법인명을 모르시나요?
-                  </p>
-                  <p className="text-sm text-zinc-700">
-                    알고 있는 회사명 + &lsquo;회사&rsquo;로 검색해 법인명을
-                    확인해주세요
-                  </p>
-                  <p className="mt-2 text-xs text-zinc-600">
-                    예) 토스 회사 → 비바리퍼블리카 / 배민 회사 → 우아한형제들
-                  </p>
-                  <p className="text-xs text-zinc-600">
-                    *KT, LG 같은 영문 약자는 케이티, 엘지로도 검색해 보세요
-                  </p>
-                </div>
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                  <button
-                    className="rounded-xl border border-border-default bg-bg-card px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
-                    onClick={handleShowReport}
-                    disabled={loading}
-                  >
-                    전체 리포트 보기 (52,957곳)
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </section>
 
@@ -567,7 +481,7 @@ export default function Home() {
                       href={searchUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-brand-orange underline hover:underline"
+                      className="text-[var(--brand-orange)] underline hover:underline"
                     >
                       &quot;{company.trim()}&quot; 법인명 검색해 보기 ↗
                     </a>
@@ -588,48 +502,135 @@ export default function Home() {
           />
         )}
 
+        {/* ===== 제품 미리보기 — 배너 하단 ~ 흰색 본문 경계 ===== */}
+        <section
+          aria-label="제품 미리보기"
+          className="relative -mx-6 sm:-mx-10 lg:-mx-12 mt-[-24px] mb-20 px-6 sm:px-10 lg:px-12"
+        >
+          <div className="product-preview-card overflow-hidden">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-[var(--border-default)]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-orange-bright)]">
+                  <svg
+                    className="h-4 w-4 text-[var(--brand-orange)]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium text-[var(--text-zinc-500)]">대시보드 미리보기</p>
+                  <p className="text-[11px] text-[var(--text-zinc-400)]">
+                    실제 기업 진단이 아닙니다
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-[var(--text-zinc-400)]">
+                <span className="inline-block h-2 w-2 rounded-full bg-[var(--brand-orange)]" />
+                <span>Live</span>
+              </div>
+            </div>
+
+            {/* 지표 4개 */}
+            <div className="grid gap-3 px-6 pb-2 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: "직원 수", value: "1,248명", sub: "전월 대비 +12명", color: "var(--text-zinc-800)" },
+                { label: "총이동", value: "86명", sub: "신규 54 · 상실 32", color: "var(--text-zinc-800)" },
+                { label: "월 회전율", value: "3.2%", sub: "업종 중앙값의 1.1배", color: "var(--text-zinc-800)" },
+                { label: "핵심 지표", value: "4개 패널", sub: "흐름 · 채용 · 추이", color: "var(--text-zinc-500)" },
+              ].map((m) => (
+                <div key={m.label} className="metric-card">
+                  <p className="text-[14px] font-medium text-[var(--text-zinc-500)]">
+                    {m.label}
+                  </p>
+                  <p className="text-[28px] font-bold tracking-tight text-[var(--text-zinc-900)]">
+                    {m.value}
+                  </p>
+                  <p className="text-[13px] text-[var(--text-zinc-500)]">
+                    {m.sub}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* 예시 그래프 영역 */}
+            <div className="mx-6 mb-4 px-6 pb-6">
+              <div className="border-t border-[var(--border-default)] pt-4">
+                <p className="text-[14px] font-semibold text-[var(--text-zinc-800)]">
+                  최근 12개월 직원 수 · 월 회전율
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl bg-[var(--bg-zinc-50)] p-4 text-center text-sm text-[var(--text-zinc-500)]">
+                    <svg className="mx-auto h-5 w-5 text-[var(--brand-orange)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M3 3v18h18" />
+                      <path d="M7 16l4-6 4 4 4-8" />
+                    </svg>
+                    <p className="mt-1 font-medium">직원 수 추이</p>
+                    <p>실제 진단 시 최근 12개월 선그래프가 표시됩니다.</p>
+                  </div>
+                  <div className="rounded-xl bg-[var(--bg-zinc-50)] p-4 text-center text-sm text-[var(--text-zinc-500)]">
+                    <svg className="mx-auto h-5 w-5 text-[var(--brand-orange)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 8v8M8 12h8" />
+                    </svg>
+                    <p className="mt-1 font-medium">월 회전율 추이</p>
+                    <p>업종 중앙값 대비 막대차트도 함께 제공됩니다.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ===== 서비스 소개 섹션 A ===== */}
         <section
           id="about-section"
-          className="mt-16 scroll-mt-24"
+          className="section-gap-pc scroll-mt-24"
         >
-          <div className="mx-auto max-w-5xl">
-            <span className="mb-3 inline-block rounded-full border border-brand-orange/30 bg-bg-info px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-info-title">
+          <div className="mx-auto max-w-[1100px]">
+            <span className="mb-3 inline-block rounded-full border border-[var(--brand-orange)]/30 bg-[var(--bg-orange-light)] px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-[var(--text-info-title)]">
               ABOUT WORK-SIGNAL
             </span>
-            <h2 className="mb-5 text-2xl font-bold text-zinc-900">
+            <h2 className="mb-5 text-balance text-[36px] font-bold text-[var(--text-zinc-900)] sm:text-[40px]">
               회사 이름 너머의 인력 흐름을 봅니다
             </h2>
-            <div className="grid gap-10 lg:grid-cols-2">
+            <div className="grid gap-8 lg:grid-cols-2">
               <div className="min-w-0">
-                <p className="text-lg leading-relaxed text-zinc-600">
-                                  <span className="text-brand-orange">Work-Signal</span>은 공공데이터에 담긴 기업의 인력 현황과 이동을
+                <p className="text-lg leading-relaxed text-[var(--text-zinc-600)]">
+                  <span className="text-[var(--brand-orange)]">Work-Signal</span>은 공공데이터에 담긴 기업의 인력 현황과 이동을
                   취업·이직 준비생이 이해하기 쉽게 정리하는 서비스입니다.
                 </p>
-                <p className="mt-4 text-zinc-500">
+                <p className="mt-4 text-[var(--text-zinc-500)] leading-[1.65]">
                   겉으로 보이는 직원 수 변화뿐 아니라, 그 뒤에 얼마나 많은
                   사람이 새로 들어오고 나갔는지 함께 보여드려요. 같은 업종의
                   다른 회사들과 비교해 상대적 위치도 확인할 수 있습니다.
                 </p>
-                <div className="mt-6 flex flex-wrap gap-2 text-sm text-zinc-500">
-                  <span className="rounded-full bg-zinc-100 px-3 py-1">
+                <div className="mt-6 flex flex-wrap gap-2 text-sm text-[var(--text-zinc-500)]">
+                  <span className="rounded-full bg-[var(--bg-zinc-100)] px-3 py-1 text-[var(--text-zinc-700)]">
                     국민연금 가입 사업장 데이터
                   </span>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1">
+                  <span className="rounded-full bg-[var(--bg-zinc-100)] px-3 py-1 text-[var(--text-zinc-700)]">
                     월 회전율 · 순증감 · 총이동
                   </span>
-                  <span className="rounded-full bg-zinc-100 px-3 py-1">
+                  <span className="rounded-full bg-[var(--bg-zinc-100)] px-3 py-1 text-[var(--text-zinc-700)]">
                     업종 중앙값 비교
                   </span>
                 </div>
               </div>
               <div className="h-full">
-                <div className="overflow-hidden rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-                    <span className="rounded-full bg-brand-orange px-2 py-0.5 text-white font-medium">
+                <div className="checklist-panel overflow-hidden p-5 shadow-sm">
+                  <div className="flex items-center gap-2 text-xs text-[var(--text-zinc-500)]">
+                    <span className="rounded-full bg-[var(--brand-orange)] px-2 py-0.5 text-white font-medium text-[11px]">
                       지원 전 체크리스트
                     </span>
-                    <span>▼</span>
+                    <span className="text-[10px] text-[var(--text-zinc-400)]">▼</span>
                   </div>
                   <ul className="mt-4 space-y-3">
                     {[
@@ -647,7 +648,7 @@ export default function Home() {
                       },
                     ].map((item, i) => (
                       <li key={i} className="flex gap-3">
-                        <span className="shrink-0 mt-0.5 rounded-full bg-brand-orange/10 p-1 text-brand-orange">
+                        <span className="shrink-0 mt-0.5 rounded-full bg-[var(--brand-orange)]/10 p-1 text-[var(--brand-orange)]">
                           <svg
                             className="h-4 w-4"
                             xmlns="http://www.w3.org/2000/svg"
@@ -662,10 +663,10 @@ export default function Home() {
                           </svg>
                         </span>
                         <div>
-                          <p className="text-sm font-semibold text-zinc-900">
+                          <p className="text-sm font-semibold text-[var(--text-zinc-900)]">
                             {item.t}
                           </p>
-                          <p className="text-sm text-zinc-500">{item.d}</p>
+                          <p className="text-sm text-[var(--text-zinc-500)]">{item.d}</p>
                         </div>
                       </li>
                     ))}
@@ -679,92 +680,96 @@ export default function Home() {
         {/* ===== 제공 정보 섹션 B ===== */}
         <section
           id="features-section"
-          className="mt-20 scroll-mt-24"
+          className="section-gap-pc scroll-mt-24"
         >
-          <div className="mx-auto max-w-5xl">
-            <h2 className="mb-2 text-2xl font-bold text-zinc-900">
+          <div className="mx-auto max-w-[1100px]">
+            <h2 className="mb-2 text-balance text-[34px] font-bold text-[var(--text-zinc-900)] sm:text-[38px]">
               지원 전에 살펴볼 세 가지 정보
             </h2>
-            <p className="mb-10 max-w-2xl text-zinc-500">
-                          <span className="text-brand-orange">Work-Signal</span>이 제공하는 핵심 정보는 인력 현황, 인력 이동,
+            <p className="mb-10 max-w-[680px] text-[var(--text-zinc-500)]">
+              <span className="text-[var(--brand-orange)]">Work-Signal</span>이 제공하는 핵심 정보는 인력 현황, 인력 이동,
               업종 비교 세 가지입니다.
             </p>
-            <div className="grid gap-6 sm:grid-cols-3">
-              <div className="group relative overflow-hidden rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm transition-colors hover:border-brand-orange/40">
-                <div className="shrink-0 rounded-xl bg-brand-orange/10 p-3 text-center">
-                  <svg
-                    className="mx-auto h-6 w-6 text-brand-orange"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
+            <div className="grid gap-5 sm:grid-cols-3">
+              {[
+                {
+                  icon: (
+                    <svg
+                      className="h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  ),
+                  title: "인력 현황",
+                  desc: "국민연금에 가입된 직원 수와 당월 순증감(들어온 사람- 나간 사람)을 보여드려요. 회사가 실제로 커졌는지, 줄었는지 확인할 수 있습니다.",
+                },
+                {
+                  icon: (
+                    <svg
+                      className="h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                  ),
+                  title: "인력 이동",
+                  desc: "새로 들어온 사람(신규)과 나간 사람(상실)을 나눠서 보여드려요. 순증감은 같아 보여도 안팎으로 많은 사람이 오갈 수 있습니다.",
+                },
+                {
+                  icon: (
+                    <svg
+                      className="h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect width="7" height="7" x="3" y="3" rx="1" />
+                      <rect width="7" height="7" x="14" y="3" rx="1" />
+                      <rect width="7" height="7" x="14" y="14" rx="1" />
+                      <rect width="7" height="7" x="3" y="14" rx="1" />
+                    </svg>
+                  ),
+                  title: "업종 비교",
+                  desc: "같은 업종에 속한 다른 사업장들의 중앙값과 비교해, 이 회사의 인력 이동이 어느 정도 위치인지 알려드려요.",
+                },
+              ].map((f) => (
+                <div
+                  key={f.title}
+                  className="group relative overflow-hidden rounded-[18px] border border-[var(--border-default)] bg-[var(--bg-card)] p-6 shadow-sm transition-colors hover:border-[var(--brand-orange)]/40"
+                >
+                  <div className="shrink-0 rounded-xl bg-[var(--brand-orange)]/10 p-3">
+                    <span className="mx-auto h-5 w-5 text-center text-[var(--brand-orange)]">
+                      {f.icon}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--text-zinc-900)]">
+                    {f.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-[var(--text-zinc-600)] leading-relaxed">
+                    {f.desc}
+                  </p>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-zinc-900">
-                  인력 현황
-                </h3>
-                <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
-                  국민연금에 가입된 직원 수와 당월 순증감(들어온 사람- 나간 사람)을
-                  보여드려요. 회사가 실제로 커졌는지, 줄었는지 확인할 수 있습니다.
-                </p>
-              </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm transition-colors hover:border-brand-orange/40">
-                <div className="shrink-0 rounded-xl bg-brand-orange/10 p-3 text-center">
-                  <svg
-                    className="mx-auto h-6 w-6 text-brand-orange"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                  </svg>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-zinc-900">
-                  인력 이동
-                </h3>
-                <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
-                  새로 들어온 사람(신규)과 나간 사람(상실)을 나눠서 보여드려요.
-                  순증감은 같아 보여도 안팎으로 많은 사람이 오갈 수 있습니다.
-                </p>
-              </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm transition-colors hover:border-brand-orange/40">
-                <div className="shrink-0 rounded-xl bg-brand-orange/10 p-3 text-center">
-                  <svg
-                    className="mx-auto h-6 w-6 text-brand-orange"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect width="7" height="7" x="3" y="3" rx="1" />
-                    <rect width="7" height="7" x="14" y="3" rx="1" />
-                    <rect width="7" height="7" x="14" y="14" rx="1" />
-                    <rect width="7" height="7" x="3" y="14" rx="1" />
-                  </svg>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-zinc-900">
-                  업종 비교
-                </h3>
-                <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
-                  같은 업종에 속한 다른 사업장들의 중앙값과 비교해, 이 회사의
-                  인력 이동이 어느 정도 위치인지 알려드려요.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
@@ -772,17 +777,19 @@ export default function Home() {
         {/* ===== 이용 방법 섹션 C ===== */}
         <section
           id="howto-section"
-          className="mt-20 scroll-mt-24"
+          className="section-gap-pc scroll-mt-24"
         >
-          <div className="mx-auto max-w-5xl">
-            <h2 className="mb-2 text-2xl font-bold text-zinc-900">
+          <div className="mx-auto max-w-[1100px]">
+            <h2 className="mb-2 text-balance text-[34px] font-bold text-[var(--text-zinc-900)] sm:text-[38px]">
               검색부터 확인까지, 세 단계면 충분해요
             </h2>
-            <p className="mb-10 max-w-2xl text-zinc-500">
+            <p className="mb-10 max-w-[680px] text-[var(--text-zinc-500)]">
               회사 이름을 검색하고, 원하는 사업장을 고른 뒤, 지표와 해설을
               확인하면 됩니다.
             </p>
-            <div className="grid gap-8 sm:grid-cols-3">
+            <div className="relative grid gap-6 sm:grid-cols-3">
+              {/* 연결선 — 데스크톱 */}
+              <div className="absolute top-10 left-[12%] right-[12%] h-px bg-[var(--border-default)] hidden sm:block" aria-hidden="true" />
               {[
                 {
                   n: "01",
@@ -800,19 +807,20 @@ export default function Home() {
                   d: "월 회전율, 순증감, 총이동, 업종 내 위치 등 핵심 지표와 지원자 관점 해설을 함께 볼 수 있어요.",
                 },
               ].map((step) => (
-                <div
-                  key={step.n}
-                  className="relative overflow-hidden rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm"
-                >
-                  <span className="inline-flex items-center justify-center rounded-xl bg-brand-orange/10 px-3 py-1 text-sm font-bold text-brand-orange">
-                    {step.n}
-                  </span>
-                  <h3 className="mt-4 text-lg font-semibold text-zinc-900">
-                    {step.t}
-                  </h3>
-                  <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
-                    {step.d}
-                  </p>
+                <div key={step.n} className="relative">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-orange)]/10 text-sm font-bold text-[var(--brand-orange)]">
+                      {step.n}
+                    </span>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[var(--text-zinc-900)]">
+                        {step.t}
+                      </h3>
+                      <p className="mt-2 text-sm text-[var(--text-zinc-600)] leading-relaxed">
+                        {step.d}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -820,30 +828,30 @@ export default function Home() {
         </section>
 
         {/* ===== 데이터 안내 섹션 D ===== */}
-        <section className="mt-20 scroll-mt-24">
-          <div className="mx-auto max-w-5xl">
-            <h2 className="mb-2 text-2xl font-bold text-zinc-900">
+        <section className="section-gap-pc scroll-mt-24">
+          <div className="mx-auto max-w-[1100px]">
+            <h2 className="mb-2 text-balance text-[34px] font-bold text-[var(--text-zinc-900)] sm:text-[38px]">
               숫자의 의미와 한계도 함께 알려드려요
             </h2>
-            <p className="mb-6 max-w-2xl text-zinc-500">
-                          <span className="text-brand-orange">Work-Signal</span>이 보여드리는 수치는 참고용이며, 기업의 안정성이나
+            <p className="mb-6 max-w-[680px] text-[var(--text-zinc-500)]">
+              <span className="text-[var(--brand-orange)]">Work-Signal</span>이 보여드리는 수치는 참고용이며, 기업의 안정성이나
               채용 가능성을 보장하지 않습니다.
             </p>
-            <div className="overflow-hidden rounded-2xl border border-border-default bg-zinc-50 p-6 shadow-sm">
-              <div className="grid gap-6 sm:grid-cols-2">
+            <div className="overflow-hidden rounded-[16px] bg-[var(--bg-zinc-50)] p-6 shadow-sm">
+              <div className="grid gap-8 sm:grid-cols-2">
                 <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">
+                  <h3 className="text-sm font-semibold text-[var(--text-zinc-900)]">
                     데이터 출처
                   </h3>
-                  <ul className="mt-2 space-y-2 text-sm text-zinc-600">
+                  <ul className="mt-2 space-y-2 text-sm text-[var(--text-zinc-600)]">
                     <li className="flex gap-2">
-                      <span className="shrink-0 text-brand-orange">•</span>
+                      <span className="shrink-0 text-[var(--brand-orange)]">•</span>
                       <span>
                         국민연금 가입자 및 사업장 정보 (공공데이터 API)
                       </span>
                     </li>
                     <li className="flex gap-2">
-                      <span className="shrink-0 text-brand-orange">•</span>
+                      <span className="shrink-0 text-[var(--brand-orange)]">•</span>
                       <span>
                         동봉 데이터: 2026년 7월 기준 전국 52,957곳 가입자
                         30명 이상 사업장
@@ -852,29 +860,29 @@ export default function Home() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">
+                  <h3 className="text-sm font-semibold text-[var(--text-zinc-900)]">
                     기준 시점
                   </h3>
-                  <p className="mt-2 text-sm text-zinc-600">
+                  <p className="mt-2 text-sm text-[var(--text-zinc-600)]">
                     진단 결과는 조회 시점에 확보한 최근 12개월 기록을 기준으로
                     계산됩니다. 기준월과 자료 출처는 결과 화면에 표시됩니다.
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">
+                  <h3 className="text-sm font-semibold text-[var(--text-zinc-900)]">
                     추정치의 한계
                   </h3>
-                  <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
+                  <p className="mt-2 text-sm text-[var(--text-zinc-600)] leading-relaxed">
                     월 회전율과 업종배수는 행정 기록에서 계산한 참고 수치입니다.
                     실제 채용·퇴사와는 다를 수 있으며, 1월·7월은 공공기관
                     정기 인사이동이 섞여 수치가 높게 보일 수 있습니다.
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">
+                  <h3 className="text-sm font-semibold text-[var(--text-zinc-900)]">
                     해석 주의사항
                   </h3>
-                  <p className="mt-2 text-sm text-zinc-600 leading-relaxed">
+                  <p className="mt-2 text-sm text-[var(--text-zinc-600)] leading-relaxed">
                     회전율이나 업종배수가 높다고 해서 나쁜 회사라는 뜻은
                     아닙니다. 숫자만으로 기업의 안정성이나 근무 조건을 판단하지
                     말고, 실제 관심사와 함께 참고 자료로 활용하세요.
@@ -886,23 +894,26 @@ export default function Home() {
         </section>
 
         {/* ===== 마지막 검색 유도 영역 ===== */}
-        <section className="mt-20 scroll-mt-24">
-          <div className="mx-auto max-w-4xl">
-            <div className="relative overflow-hidden rounded-3xl border border-orange-200/60 bg-gradient-to-br from-orange-50 to-amber-50/60 p-10 text-center shadow-sm sm:p-12">
-              <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-orange-200/25 blur-3xl" />
-              <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-amber-200/30 blur-3xl" />
+        <section className="section-gap-pc scroll-mt-24">
+          <div className="mx-auto max-w-[960px]">
+            <div className="relative overflow-hidden rounded-[24px] border border-[var(--border-default)] bg-[var(--brand-orange-bright)] p-8 sm:p-10 shadow-sm">
+              {/* 모서리 장식 */}
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--brand-hero-edge)] blur-[2rem] opacity-70" aria-hidden="true" />
+              <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[var(--brand-orange)]/30 blur-[1rem] opacity-60" aria-hidden="true" />
+
               <div className="relative">
-                <h2 className="text-2xl font-bold text-zinc-900 sm:text-3xl">
-                                  관심 있는 기업, <span className="text-brand-orange">Work-Signal</span>로 살펴보세요
+                <h2 className="text-balance text-[28px] font-bold text-[var(--text-zinc-900)] sm:text-[32px]">
+                  관심 있는 기업,{" "}
+                  <span className="text-[var(--brand-orange)]">Work-Signal</span>로 살펴보세요
                 </h2>
-                <p className="mt-3 max-w-lg text-zinc-500 sm:text-lg">
+                <p className="mt-3 max-w-lg text-[var(--text-zinc-500)] sm:text-lg">
                   회사명 하나만 입력하면 인력 흐름과 업종 비교를 바로 확인할 수
                   있어요.
                 </p>
-                <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <a
                     href="#search-hero"
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand-orange px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                    className="btn-filled-orange"
                   >
                     <svg
                       className="h-4 w-4"
@@ -919,20 +930,20 @@ export default function Home() {
                     </svg>
                     기업 검색하기
                   </a>
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-[var(--text-zinc-500)]">
                     위 내비게이션 또는 아래 검색창으로 이동할 수 있어요
                   </span>
                 </div>
               </div>
             </div>
-            <div className="mt-6 flex flex-col items-center gap-3">
+            <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <form
                 onSubmit={handleSearch}
-                className="w-full max-w-lg rounded-xl border border-border-default bg-bg-card px-5 py-3 shadow-sm sm:rounded-xl sm:px-6 sm:py-0"
+                className="w-full max-w-[560px] overflow-hidden rounded-[14px] border border-[var(--border-default)] bg-[var(--bg-card)] px-5 py-0 shadow-sm"
               >
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <input
-                    className="flex-1 rounded-lg bg-transparent px-2 py-2 text-foreground placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-orange/60 sm:rounded-none sm:px-3 sm:py-3"
+                    className="flex-1 min-w-0 rounded-[14px] border-0 bg-[var(--bg-zinc-50)] px-4 py-[13px] text-[15px] text-[var(--foreground)] placeholder-[var(--text-zinc-400)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-orange)]/50 sm:rounded-none sm:px-4 sm:py-[13px]"
                     type="text"
                     placeholder="회사·사업장명을 입력하세요"
                     value={company}
@@ -940,7 +951,7 @@ export default function Home() {
                     aria-label="회사명 입력"
                   />
                   <button
-                    className="shrink-0 rounded-lg bg-brand-orange px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-orange-dark focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed sm:rounded-l-none"
+                    className="shrink-0 rounded-[12px] bg-[var(--brand-orange)] px-5 py-[11px] text-[14px] font-semibold text-white transition-colors hover:bg-[var(--brand-orange-dark)] focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed sm:rounded-l-none"
                     type="submit"
                     disabled={loading || !company.trim()}
                   >
@@ -953,14 +964,18 @@ export default function Home() {
         </section>
 
         {/* 푸터 */}
-        <footer className="mt-24 border-t border-border-default bg-bg-card py-10">
-          <div className="mx-auto flex max-w-5xl flex-col gap-5 px-5 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+        <footer className="mt-24 border-t border-[var(--border-default)] bg-[var(--bg-card)] py-10">
+          <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-5 text-sm text-[var(--text-zinc-500)] sm:flex-row sm:items-center sm:justify-between lg:px-8">
             <div className="flex items-center gap-2">
-              <span className="text-brand-black font-bold">Work-</span>
-              <span className="text-brand-orange font-bold">Signal</span>
+              <span className="brand-mark text-[var(--brand-black)] font-bold text-[18px] sm:text-[20px]">
+                Work-
+              </span>
+              <span className="brand-mark text-[var(--brand-orange)] font-bold text-[18px] sm:text-[20px]">
+                Signal
+              </span>
               <span className="ml-2 text-xs">— 기업 인력 흐름 확인</span>
             </div>
-            <p className="max-w-md text-xs leading-relaxed">
+            <p className="max-w-md text-xs leading-relaxed text-[var(--text-zinc-500)]">
               국민연금 공공데이터와 동봉 데이터(2026년 7월 기준, 전국
               52,957곳)를 바탕으로 인력 이동을 정리해 보여드립니다. 수치는
               참고용이며 기업의 안정성이나 채용 가능성을 보장하지 않습니다.

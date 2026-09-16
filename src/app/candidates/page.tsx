@@ -227,29 +227,30 @@ function CandidatesInner() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* 내비게이션 */}
-      <nav className="sticky top-0 z-40 border-b border-border-default bg-bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-bg-card/80">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 py-2 sm:px-6 lg:px-8">
+      <nav className="sticky top-5 z-40 mx-4 max-w-[1200px] w-full">
+        <div className="card-white flex h-[72px] items-center justify-between px-5 lg:px-8">
           <a
             href="/"
-            className="flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 rounded"
+            className="brand-mark outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg px-1 -ml-1"
           >
-            <span className="text-brand-black font-bold tracking-tight">
+            <span className="text-[var(--brand-black)] font-bold tracking-tight text-[22px] sm:text-[26px]">
               Work-
             </span>
-            <span className="text-brand-orange font-bold tracking-tight">
+            <span className="text-[var(--brand-orange)] font-bold tracking-tight text-[22px] sm:text-[26px]">
               Signal
             </span>
           </a>
+
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-500">
-              "{company}" 관련 검색 결과
+            <span className="text-sm text-[var(--text-zinc-500)]">
+              &quot;{company}&quot; 관련 검색 결과
             </span>
           </div>
         </div>
       </nav>
 
       {/* 페이지 콘텐츠 */}
-      <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-6 lg:px-8 flex-1">
+      <div className="mx-auto w-full max-w-[1200px] px-5 py-6 sm:px-6 lg:px-8 flex-1">
         {/* 에러 표시 */}
         {error && (
           <div className="mt-6 flex w-full max-w-lg items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-4 text-red-800 shadow-sm">
@@ -280,75 +281,118 @@ function CandidatesInner() {
 
         {/* 후보 목록 */}
         {!loading && candidates.length > 0 && (
-          <section className="mt-8">
-            <div className="overflow-hidden rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm">
-              <p className="mb-4 text-sm text-zinc-500">
+          <section className="mt-6">
+            {/* 목록 헤더 */}
+            <div className="mb-4 flex items-baseline justify-between gap-4">
+              <div>
+                <h2 className="text-balance text-[28px] font-bold text-[var(--text-zinc-900)]">
+                  &quot;{company}&quot; 검색 결과
+                </h2>
+                <span className="mt-1 inline-flex items-center rounded-full border border-[var(--border-default)] bg-[var(--bg-zinc-50)] px-3 py-0.5 text-xs font-medium text-[var(--text-zinc-600)]">
+                  총 {candidates.length}건
+                </span>
+              </div>
+              <p className="text-sm text-[var(--text-zinc-500)]">
                 {candidates.length > 0 &&
                   candidates[0]?.source === "nps"
-                    ? `NPS 공공데이터에서 "${company}" 관련 ${candidates.length}건을 찾았습니다. 번호를 선택하면 해당 사업장을 진단합니다.`
-                    : `검색어 "${company}" 에 대해 ${candidates.length}건의 후보가 있습니다. 번호를 선택하면 해당 사업장을 진단합니다.`}
+                    ? "국민연금(NPS) 공공데이터에서 찾았습니다. 사업장을 선택하면 진단합니다."
+                    : "동봉 데이터에서 찾았습니다. 사업장을 선택하면 진단합니다."}
               </p>
-              <div className="space-y-2">
+            </div>
+
+            {/* 목록 카드 */}
+            <div className="card-white overflow-hidden">
+              <div className="divide-y divide-[var(--border-default)]">
                 {candidates
                   .slice((page - 1) * pageSize, page * pageSize)
                   .map((c) => (
                     <div
                       key={c.번호}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-zinc-50 px-4 py-3"
+                      className="flex items-center gap-4 px-5 py-4"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="shrink-0 rounded-lg bg-zinc-200 px-2.5 py-0.5 text-sm font-medium text-zinc-700">
-                          {c.번호}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="truncate font-medium text-zinc-900">
-                            {c.사업장명}
-                          </div>
-                          <div className="text-xs text-zinc-500">
-                            {c.source === "nps"
-                              ? [
-                                  c.업종,
-                                  c.가입자수 != null
-                                    ? `가입자 ${fmtNum(c.가입자수)}명`
-                                    : undefined,
-                                  c.주소,
-                                  c.기준월 ? `기준월 ${c.기준월}` : undefined,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")
-                              : `동봉 데이터${c.시도 ? ` · ${c.시도}` : ""}${
-                                  c.가입자수 != null
-                                    ? ` · 가입자 ${fmtNum(c.가입자수)}명`
-                                    : ""
-                                }`}
-                          </div>
+                      {/* 번호 */}
+                      <span className="shrink-0 rounded-lg bg-[var(--bg-zinc-100)] px-3 py-1 text-sm font-medium text-[var(--text-zinc-700)]">
+                        {c.번호}
+                      </span>
+
+                      {/* 기업 정보 */}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[18px] font-semibold text-[var(--text-zinc-900)]">
+                          {c.사업장명}
+                        </div>
+                        <div className="mt-1 text-xs text-[var(--text-zinc-500)]">
+                          {c.source === "nps" ? (
+                            <>
+                              <span className="text-[var(--text-zinc-600)]">{c.업종}</span>
+                              {c.업종 && c.주소 && <span className="mx-1">·</span>}
+                              <span className="text-[var(--text-zinc-500)]">{c.주소}</span>
+                              {c.업종 && c.기준월 && (
+                                <>
+                                  <span className="mx-1">·</span>
+                                  <span className="text-[var(--text-zinc-500)]">기준월 {c.기준월}</span>
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[var(--text-zinc-500)]">
+                                동봉 데이터
+                                {c.시도 ? ` · ${c.시도}` : ""}
+                              </span>
+                              {c.가입자수 != null && (
+                                <>
+                                  <span className="mx-1">·</span>
+                                  <span className="text-[var(--text-zinc-500)]">
+                                    가입자 {fmtNum(c.가입자수)}명
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
-                      <button
-                        className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
-                        onClick={() => handlePick(c.번호)}
-                        disabled={loading}
-                      >
-                        진단
-                      </button>
+
+                      {/* 가입자 수 영역 */}
+                      {c.가입자수 != null && (
+                        <div className="shrink-0 text-right">
+                          <p className="text-[20px] font-bold text-[var(--text-zinc-900)]">
+                            {fmtNum(c.가입자수)}
+                          </p>
+                          <p className="text-[12px] text-[var(--text-zinc-500)]">
+                            가입자
+                          </p>
+                        </div>
+                      )}
+
+                      {/* 진단 버튼 */}
+                      <div className="shrink-0">
+                        <button
+                          className="btn-filled-orange text-sm"
+                          onClick={() => handlePick(c.번호)}
+                          disabled={loading}
+                        >
+                          진단
+                        </button>
+                      </div>
                     </div>
                   ))}
               </div>
+
               {/* 페이지네이션 */}
               {candidates.length > pageSize && (
-                <div className="mt-4 flex items-center justify-center gap-2">
+                <div className="mt-4 flex items-center justify-center gap-2 border-t border-[var(--border-default)] pt-4">
                   <button
-                    className="rounded-xl border border-border-default bg-bg-card px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                    className="btn-ghost-secondary py-2 px-4 text-sm"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                   >
                     ← 이전
                   </button>
-                  <span className="text-sm text-zinc-500">
+                  <span className="text-sm text-[var(--text-zinc-500)]">
                     {page} / {Math.ceil(candidates.length / pageSize)}
                   </span>
                   <button
-                    className="rounded-xl border border-border-default bg-bg-card px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                    className="btn-ghost-secondary py-2 px-4 text-sm"
                     onClick={() =>
                       setPage((p) =>
                         Math.min(Math.ceil(candidates.length / pageSize), p + 1)
@@ -362,20 +406,22 @@ function CandidatesInner() {
                   </button>
                 </div>
               )}
-              <div className="mt-4 flex items-center justify-between gap-3">
-                <p className="text-xs text-zinc-500">
+
+              {/* 하단 컨트롤 */}
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border-default)] pt-4">
+                <p className="text-xs text-[var(--text-zinc-500)]">
                   찾는 회사가 없나요?{" "}
                   <a
                     href={searchUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-brand-orange underline hover:underline"
+                    className="text-[var(--brand-orange)] underline hover:underline"
                   >
                     &quot;{company.trim()}&quot; 법인명 검색해 보기 ↗
                   </a>
                 </p>
                 <button
-                  className="rounded-xl border border-border-default bg-bg-card px-4 py-2 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                  className="btn-ghost-secondary py-2 px-4 text-sm"
                   onClick={() => {
                     sessionStorage.removeItem("candidates");
                     router.push("/");

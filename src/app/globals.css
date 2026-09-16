@@ -1,25 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FAFAFA;
+  --background: #F6F7F9;
   --foreground: #18181B;
   --brand-black: #18181B;
   --brand-orange: #EF7900;
-  --brand-orange-dark: #D96E00;
-  --text-body: #6B7280;
-  --border-default: #D4D4D8;
+  --brand-orange-dark: #C65D00;
+  --brand-orange-bright: #FFF3E7;
+  --brand-hero-edge: #FFDFC2;
+  --brand-hero-center: #FFFCF8;
+  --text-body: #667085;
+  --border-default: #E7EAF0;
   --bg-card: #FFFFFF;
-  --bg-orange-light: #FFF4E8;
-  --bg-info: #FFFBEB;
-  --border-info: #FCD34D;
+  --bg-orange-light: #FFF3E7;
+  --bg-info: #FFFCF8;
+  --border-info: #FFDFC2;
   --text-info-title: #92400E;
-  --text-muted: #71717A;
+  --text-muted: #667085;
+
   --text-zinc-900: #18181B;
   --text-zinc-800: #27272A;
   --text-zinc-700: #3F3F46;
   --text-zinc-600: #52525B;
-  --text-zinc-500: #71717A;
+  --text-zinc-500: #667085;
   --text-zinc-400: #A1A1AA;
+
   --bg-zinc-50: #F4F4F5;
   --bg-zinc-100: #F4F4F5;
   --bg-zinc-200: #E4E4E7;
@@ -27,6 +32,7 @@
   --bg-zinc-400: #A1A1AA;
   --bg-zinc-700: #42424A;
   --bg-zinc-900: #18181B;
+
   --border-zinc-100: #F4F4F5;
   --border-zinc-200: #E4E4E7;
   --border-zinc-300: #D4D4D8;
@@ -84,4 +90,197 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ── 공통 컴포넌트 토큰 ── */
+.font-display {
+  font-family: var(--font-noto-sans-kr), var(--font-geist-sans), Arial, sans-serif;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* 브랜드 워드마크 줄바꿈 방지 */
+.brand-mark {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+/* 뱃지 */
+.badge-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-default);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-zinc-700);
+}
+
+.badge-subtle::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-orange);
+  flex-shrink: 0;
+}
+
+/* 보조 액션 버튼 */
+.btn-ghost-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-zinc-700);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn-ghost-secondary:hover:not(:disabled) {
+  background: #FAFBFC;
+  border-color: #D4D8DE;
+}
+.btn-ghost-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 채워진 주황 버튼 */
+.btn-filled-orange {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: none;
+  background: var(--brand-orange);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.btn-filled-orange:hover:not(:disabled) {
+  background: var(--brand-orange-dark);
+}
+.btn-filled-orange:active:not(:disabled) {
+  transform: scale(0.985);
+}
+.btn-filled-orange:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 비활성 검색 버튼 (중립) */
+.btn-ghost-neutral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  color: var(--text-zinc-700);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  min-width: 96px;
+}
+.btn-ghost-neutral:hover:not(:disabled) {
+  background: #FAFBFC;
+  border-color: #D4D8DE;
+}
+.btn-ghost-neutral:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 카드 — 기본 흰 카드 */
+.card-white {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.02);
+}
+
+/* 지표 카드 — 진단 화면에서 사용 */
+.metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 페이지 섹션 간격 */
+.section-gap-pc {
+  margin-top: 96px;
+}
+.section-gap-mobile {
+  margin-top: 64px;
+}
+
+@media (min-width: 768px) {
+  .section-gap-pc {
+    margin-top: 104px;
+  }
+}
+
+/* 히어로 그라데이션 배경 */
+.hero-bg {
+  background:
+    radial-gradient(ellipse at 80% 20%, rgba(255, 223, 194, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse at 10% 60%, rgba(255, 240, 225, 0.6) 0%, transparent 60%),
+    linear-gradient(180deg, #FFF3E7 0%, #FFFCF8 55%, #FFFFFF 100%);
+}
+
+/* 히어로 하단 흰색 안개 장식 */
+.hero-fog {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 제품 미리보기 패널 */
+.product-preview-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 24px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.05), 0 2px 6px rgba(0,0,0,0.02);
+}
+
+/* 체크리스트 패널 */
+.checklist-panel {
+  background: var(--bg-orange-light);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+}
+
+/* 진단 페이지 연회색 배경 카드 */
+.bg-zinc-50-panel {
+  background: var(--bg-zinc-50);
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
 }
