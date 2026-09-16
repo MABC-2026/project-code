@@ -426,13 +426,6 @@ export default function Home() {
                   *KT, LG 같은 영문 약자는 케이티, 엘지로도 검색해 보세요
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    className="btn-ghost-secondary text-sm"
-                    onClick={handleShowReport}
-                    disabled={loading}
-                  >
-                    전체 리포트 보기 (52,957곳)
-                  </button>
                 </div>
               </div>
             </div>
