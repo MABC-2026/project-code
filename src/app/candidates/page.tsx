@@ -14,6 +14,8 @@ function CandidatesInner() {
   const [error, setError] = useState<string | null>(null);
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [loadingText, setLoadingText] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
   const logStep = useCallback(
     (단계: string, 상태: AgentStep["상태"], 내용: string) => {
       setSteps((prev) => {
@@ -32,6 +34,7 @@ function CandidatesInner() {
   useEffect(() => {
     const savedCandidates = sessionStorage.getItem("candidates");
     const savedCompany = sessionStorage.getItem("searchCompany");
+    const savedPage = sessionStorage.getItem("candidatesPage");
     if (savedCandidates) {
       try {
         setCandidates(JSON.parse(savedCandidates));
@@ -41,6 +44,11 @@ function CandidatesInner() {
     }
     if (savedCompany) {
       setCompany(savedCompany);
+    }
+    if (savedPage) {
+      const p = parseInt(savedPage, 10);
+      if (!isNaN(p) && p >= 1) setPage(p);
+      sessionStorage.removeItem("candidatesPage");
     }
   }, []);
 
@@ -121,6 +129,8 @@ function CandidatesInner() {
               }));
               sessionStorage.setItem("diagSteps", JSON.stringify(steps));
               sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
+              console.log("[DEBUG] Saving prevCandidatesPage:", page);
+              sessionStorage.setItem("prevCandidatesPage", JSON.stringify(page));
               router.push("/result");
               return;
             }
@@ -152,6 +162,8 @@ function CandidatesInner() {
               }));
               sessionStorage.setItem("diagSteps", JSON.stringify(steps));
               sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
+              console.log("[DEBUG] Saving prevCandidatesPage:", page);
+              sessionStorage.setItem("prevCandidatesPage", JSON.stringify(page));
               router.push("/result");
               return;
             }
@@ -184,6 +196,7 @@ function CandidatesInner() {
             }));
             sessionStorage.setItem("diagSteps", JSON.stringify(steps));
             sessionStorage.setItem("prevCandidates", JSON.stringify(candidates));
+            sessionStorage.setItem("prevCandidatesPage", JSON.stringify(page));
             router.push("/result");
             return;
           }
@@ -203,7 +216,7 @@ function CandidatesInner() {
         setLoading(false);
       }
     },
-    [candidates, router, logStep, steps]
+    [candidates, router, logStep, steps, page]
   );
 
   const fmtNum = (n: number) => n.toLocaleString("ko-KR");
@@ -276,49 +289,79 @@ function CandidatesInner() {
                     : `검색어 "${company}" 에 대해 ${candidates.length}건의 후보가 있습니다. 번호를 선택하면 해당 사업장을 진단합니다.`}
               </p>
               <div className="space-y-2">
-                {candidates.map((c) => (
-                  <div
-                    key={c.번호}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-zinc-50 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="shrink-0 rounded-lg bg-zinc-200 px-2.5 py-0.5 text-sm font-medium text-zinc-700">
-                        {c.번호}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="truncate font-medium text-zinc-900">
-                          {c.사업장명}
-                        </div>
-                        <div className="text-xs text-zinc-500">
-                          {c.source === "nps"
-                            ? [
-                                c.업종,
-                                c.가입자수 != null
-                                  ? `가입자 ${fmtNum(c.가입자수)}명`
-                                  : undefined,
-                                c.주소,
-                                c.기준월 ? `기준월 ${c.기준월}` : undefined,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")
-                            : `동봉 데이터${c.시도 ? ` · ${c.시도}` : ""}${
-                                c.가입자수 != null
-                                  ? ` · 가입자 ${fmtNum(c.가입자수)}명`
-                                  : ""
-                              }`}
+                {candidates
+                  .slice((page - 1) * pageSize, page * pageSize)
+                  .map((c) => (
+                    <div
+                      key={c.번호}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-zinc-50 px-4 py-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="shrink-0 rounded-lg bg-zinc-200 px-2.5 py-0.5 text-sm font-medium text-zinc-700">
+                          {c.번호}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-zinc-900">
+                            {c.사업장명}
+                          </div>
+                          <div className="text-xs text-zinc-500">
+                            {c.source === "nps"
+                              ? [
+                                  c.업종,
+                                  c.가입자수 != null
+                                    ? `가입자 ${fmtNum(c.가입자수)}명`
+                                    : undefined,
+                                  c.주소,
+                                  c.기준월 ? `기준월 ${c.기준월}` : undefined,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")
+                              : `동봉 데이터${c.시도 ? ` · ${c.시도}` : ""}${
+                                  c.가입자수 != null
+                                    ? ` · 가입자 ${fmtNum(c.가입자수)}명`
+                                    : ""
+                                }`}
+                          </div>
                         </div>
                       </div>
+                      <button
+                        className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                        onClick={() => handlePick(c.번호)}
+                        disabled={loading}
+                      >
+                        진단
+                      </button>
                     </div>
-                    <button
-                      className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
-                      onClick={() => handlePick(c.번호)}
-                      disabled={loading}
-                    >
-                      진단
-                    </button>
-                  </div>
-                ))}
+                  ))}
               </div>
+              {/* 페이지네이션 */}
+              {candidates.length > pageSize && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <button
+                    className="rounded-xl border border-border-default bg-bg-card px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    ← 이전
+                  </button>
+                  <span className="text-sm text-zinc-500">
+                    {page} / {Math.ceil(candidates.length / pageSize)}
+                  </span>
+                  <button
+                    className="rounded-xl border border-border-default bg-bg-card px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
+                    onClick={() =>
+                      setPage((p) =>
+                        Math.min(Math.ceil(candidates.length / pageSize), p + 1)
+                      )
+                    }
+                    disabled={
+                      page >= Math.ceil(candidates.length / pageSize)
+                    }
+                  >
+                    다음 →
+                  </button>
+                </div>
+              )}
               <div className="mt-4 flex items-center justify-between gap-3">
                 <p className="text-xs text-zinc-500">
                   찾는 회사가 없나요?{" "}

@@ -404,6 +404,12 @@ function ResultInner() {
                   } else {
                     sessionStorage.removeItem("candidates");
                   }
+                  const prevPage = sessionStorage.getItem("prevCandidatesPage");
+                  console.log("[DEBUG] Restoring prevCandidatesPage:", prevPage);
+                  if (prevPage) {
+                    sessionStorage.setItem("candidatesPage", prevPage);
+                    sessionStorage.removeItem("prevCandidatesPage");
+                  }
                   router.push("/candidates");
                 }}
               >

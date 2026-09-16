@@ -132,8 +132,8 @@ function LineChart({
   const ariaParts = sorted.map((p) => `${p.ym} ${valueLabel(p.value)}`);
   const ariaLabel = `${title}: ${ariaParts.join(", ")}`;
 
-  // 가로 눈금선: fromZero → 0/최댓값, else → 최솟값/최댓값
-  const gridLines = fromZero ? [0, maxVal] : [minVal, maxVal];
+  // 가로 눈금선: fromZero → 0/최댓값, else → 최솟값/최댓값 (중복 제거)
+  const gridLines: number[] = [...new Set(fromZero ? [0, maxVal] : [minVal, maxVal])];
 
   // x 라벨 후보: addMonths(firstYM, 0/3/6/...) (span 이하) + 마지막 달
   const labelCandidates: string[] = [];

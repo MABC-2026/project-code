@@ -603,7 +603,7 @@ export default function Home() {
             <div className="grid gap-10 lg:grid-cols-2">
               <div className="min-w-0">
                 <p className="text-lg leading-relaxed text-zinc-600">
-                  Work-Signal은 공공데이터에 담긴 기업의 인력 현황과 이동을
+                                  <span className="text-brand-orange">Work-Signal</span>은 공공데이터에 담긴 기업의 인력 현황과 이동을
                   취업·이직 준비생이 이해하기 쉽게 정리하는 서비스입니다.
                 </p>
                 <p className="mt-4 text-zinc-500">
@@ -686,7 +686,7 @@ export default function Home() {
               지원 전에 살펴볼 세 가지 정보
             </h2>
             <p className="mb-10 max-w-2xl text-zinc-500">
-              Work-Signal이 제공하는 핵심 정보는 인력 현황, 인력 이동,
+                          <span className="text-brand-orange">Work-Signal</span>이 제공하는 핵심 정보는 인력 현황, 인력 이동,
               업종 비교 세 가지입니다.
             </p>
             <div className="grid gap-6 sm:grid-cols-3">
@@ -826,7 +826,7 @@ export default function Home() {
               숫자의 의미와 한계도 함께 알려드려요
             </h2>
             <p className="mb-6 max-w-2xl text-zinc-500">
-              Work-Signal이 보여드리는 수치는 참고용이며, 기업의 안정성이나
+                          <span className="text-brand-orange">Work-Signal</span>이 보여드리는 수치는 참고용이며, 기업의 안정성이나
               채용 가능성을 보장하지 않습니다.
             </p>
             <div className="overflow-hidden rounded-2xl border border-border-default bg-zinc-50 p-6 shadow-sm">
@@ -893,7 +893,7 @@ export default function Home() {
               <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-amber-200/30 blur-3xl" />
               <div className="relative">
                 <h2 className="text-2xl font-bold text-zinc-900 sm:text-3xl">
-                  관심 있는 기업, Work-Signal로 살펴보세요
+                                  관심 있는 기업, <span className="text-brand-orange">Work-Signal</span>로 살펴보세요
                 </h2>
                 <p className="mt-3 max-w-lg text-zinc-500 sm:text-lg">
                   회사명 하나만 입력하면 인력 흐름과 업종 비교를 바로 확인할 수

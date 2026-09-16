@@ -306,8 +306,8 @@ export async function GET(req: NextRequest) {
     );
     const reorderedItems = [...normalItems, ...constructionItems];
 
-    // 사용자에게는 상위 30건 노출
-    const displayedItems = reorderedItems.slice(0, 30);
+    // 사용자에게는 전체 노출 (프론트에서 페이지네이션)
+    const displayedItems = reorderedItems;
 
     // ── 실제로 호출한 검색어 목록 (쪽 번호 없이 중복 제거) ──
     const actualQueries: string[] = [
@@ -462,9 +462,9 @@ export async function GET(req: NextRequest) {
     const responseBody: any = {
       resultCode,
       resultMsg,
-      numOfRows: 30,
-      pageNo,
-      totalCount: originalData?.response?.body?.totalCount,
+      numOfRows: responseItems.length,
+      pageNo: 1,
+      totalCount: reorderedItems.length,
       검색어: actualQueries,
       items: responseItems,
     };
