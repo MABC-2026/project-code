@@ -6,6 +6,7 @@ import ExplainCard from "@/components/ExplainCard";
 import AgentSteps, { type AgentStep } from "@/components/AgentSteps";
 import HiringInsight from "@/components/HiringInsight";
 import KeyNumbers from "@/components/KeyNumbers";
+import IndustryPosition from "@/components/IndustryPosition";
 import ThoughtTrail from "@/components/ThoughtTrail";
 import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 export default function Home() {
@@ -526,6 +527,7 @@ export default function Home() {
             <div className="order-1 min-w-0 rounded-lg border border-zinc-200 bg-white p-4 lg:order-2 lg:col-span-8">
               <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} 추이={resultMeta?.추이} />
               <KeyNumbers 진단결과={result} 추이={resultMeta?.추이} />
+              <IndustryPosition 진단결과={result} />
               <HiringInsight rows={resultMeta?.추이} />
 
           <details className="mt-4 rounded-lg border border-zinc-200 p-3">
