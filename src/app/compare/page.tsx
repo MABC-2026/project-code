@@ -116,10 +116,10 @@ function CompareInner() {
             href="/"
             className="flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 rounded"
           >
-            <span className="text-brand-black font-bold tracking-tight">
+            <span className="text-[var(--brand-black)] font-bold tracking-tight text-[22px] sm:text-[26px]">
               Work-
             </span>
-            <span className="text-brand-orange font-bold tracking-tight">
+            <span className="text-[var(--brand-orange)] font-bold tracking-tight text-[22px] sm:text-[26px]">
               Signal
             </span>
           </a>
@@ -176,51 +176,6 @@ function CompareInner() {
             </div>
           </div>
         )}
-
-        {/* 테이블 */}
-        <section className="mb-8">
-          <div className="overflow-hidden rounded-2xl border border-border-default bg-bg-card p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-zinc-500">
-                동봉 데이터(2026-07)에서 찾을 수 있는 사업장을 선택하세요.
-              </p>
-              <button
-                className="rounded-xl bg-brand-orange px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-orange/90 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2"
-                onClick={() => compare(selectedNames)}
-                disabled={loading || selectedNames.length === 0}
-              >
-                {loading ? "계산 중..." : "선택한 사업장 비교"}
-              </button>
-            </div>
-
-            {loading && steps.length > 0 && <div className="mt-4"></div>}
-
-            {!loading && (
-              <div className="mt-4 space-y-2 max-h-[300px] overflow-y-auto">
-                {[
-                  "㈜가나다전자",
-                  "㈜라마다도시개발",
-                  "㈜베드타운종합건설",
-                  "㈜메타헬스케어",
-                  "㈜온오프플랫폼",
-                ].map((name) => (
-                  <label
-                    key={name}
-                    className="flex items-center gap-3 rounded-xl border border-border-default bg-zinc-50 px-4 py-3 cursor-pointer hover:bg-zinc-100 transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-border-default text-brand-orange focus:ring-brand-orange"
-                      checked={selectedNames.includes(name)}
-                      onChange={() => toggleSelection(name)}
-                    />
-                    <span className="text-sm text-zinc-900">{name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
 
         {/* 비교 결과 */}
         {rows.length > 0 && (
