@@ -45,19 +45,69 @@ description: 회사·기업의 인력 안정성을 국민연금 가입 사업장
 ---
 
 ## 파일 배치와 각 폴더를 읽는 시점
-
+프로젝트는 세 층으로 나뉜다. **계산(skill/) → API(api/ + src/app/api/) → 화면(src/)** 순서다.
 ```
-skill/
-├── SKILL.md ← 이 파일. 스킬 진입점·원칙·절차·예외
-├── scripts/
-│   ├── stability.py ← 지표 계산. 항상 이것으로 숫자를 만든다 (표준 라이브러리만 사용)
-│   └── extract_sample.py ← 원본 공개데이터에서 assets 의 CSV 두 개를 다시 만들 때만 쓴다
-├── references/
-│   └── metrics.md ← 지표 정의·임계값·실측 근거·한계·출처. 기준이 궁금하면 여기
-└── assets/
-    ├── sample_workplaces.csv ← 입력 파일이 없을 때 쓰는 동봉 데이터. 2026-07 가입자 30명 이상 등록 사업장 52,957곳
-    ├── industry_baseline.csv ← 업종 기준선 550개 업종(월 회전율 중앙값·p25·p75·p90). 업종배수 계산에 반드시 필요
-    └── report_template.md ← 출력 구조 고정. 출력 전에 이 템플릿으로 구조를 맞춘다
+작업공간/
+├── skill/                          ← 예선 스킬. 계산의 원본. 이 SKILL.md가 여기 있다.
+│   ├── SKILL.md                    ← 스킬 진입점·원칙·절차·예외 (지금 읽는 파일)
+│   ├── scripts/
+│   │   ├── stability.py            ← 지표 계산. 항상 이 스크립트로 숫자를 만든다 (표준 라이브러리만 사용)
+│   │   └── extract_sample.py       ← 원본 공개데이터에서 assets의 CSV 두 개를 다시 만들 때만 쓴다
+│   ├── references/
+│   │   └── metrics.md              ← 지표 정의·임계값·실측 근거·한계·출처. 기준이 궁금하면 여기
+│   └── assets/
+│       ├── sample_workplaces.csv   ← 입력 CSV가 없을 때 쓰는 동봉 데이터. 2026-07 가입자 30명 이상 등록 사업장 52,957곳
+│       ├── industry_baseline.csv   ← 업종 기준선 550개 업종(월 회전율 중앙값·p25·p75·p90). 업종배수 계산에 반드시 필요
+│       └── report_template.md      ← 출력 구조 고정. 출력 전에 이 템플릿으로 형태를 맞춘다
+│
+├── api/                             ← Vercel 파이썬 서버리스 함수 (배포 시만 사용)
+│   └── diagnose.py                 ← /api/diagnose 엔드포인트. skill/scripts/stability.py를 import해 진단 계산. 웹 서비스의 계산 결과를 API로 노출
+│
+├── src/                             ← Next.js 16(React 19) 웹 서비스. 화면 + API 라우트
+│   └── app/
+│       ├── page.tsx                ← 메인 화면 (검색 입력, 후보 목록)
+│       ├── layout.tsx              ← 전체 레이아웃·글로벌 CSS
+│       ├── globals.css             ← 글로벌 스타일
+│       ├── Loading.tsx             ← 로딩 상태 컴포넌트
+│       │
+│       ├── candidates/             ← 검색 결과(후보) 페이지
+│       │   └── page.tsx
+│       ├── compare/                ← 회사 비교 페이지
+│       │   └── page.tsx
+│       ├── report/                 ← 리포트 페이지
+│       │   └── page.tsx
+│       ├── result/                 ← 진단 결과 페이지
+│       │   └── page.tsx
+│       │
+│       └── api/                    ← Next.js API 라우트 (서버리스 함수)
+│           ├── nps/
+│           │   ├── search/         ← 사업장 검색 — 공공데이터 오픈API 조회
+│           │   │   └── route.ts
+│           │   └── workplace/      ← 고른 사업장의 최근 12개월 기록 수집
+│           │       └── route.ts
+│           ├── diagnose/           ← 진단 계산 (Vercel에서 api/diagnose.py로 포워딩, 로컬에서는 Next.js가 처리)
+│           │   └── route.ts
+│           └── explain/            ← Solar Pro 4 해설 — 사실 목록 → 숫자 근거·금지 표현 검사
+│               └── route.ts
+│
+├── components/                      ← React UI 컴포넌트 (src/components)
+│   ├── KeyNumbers.tsx               ← 숫자 4칸 (가입자·순증감·총이동·회전율)
+│   ├── FlowChart.tsx                ← 들어온/나간 사람 막대그래프
+│   ├── HiringInsight.tsx            ← 채용 흐름 분석
+│   ├── IndustryPosition.tsx         ← 업종 내 상대 위치
+│   ├── CompareTable.tsx            ← 회사 비교 표
+│   ├── ExplainCard.tsx             ← 해설 카드
+│   ├── TrendTable.tsx              ← 시계열 추세 표
+│   ├── AgentSteps.tsx              ← 에이전트 처리 단계 표시
+│   ├── AgentThinking.tsx           ← 에이전트 사고 과정 표시
+│   ├── ThoughtTrail.tsx            ← 생각의 흔적
+│   ├── NavigationLoader.tsx        ← 네비게이션 로딩
+│   ├── FullPageLoader.tsx          ← 전체 페이지 로딩 오버레이
+│   ├── LoadingOverlayFallback.tsx  ← 로딩 폴백
+│   └── ...
+│
+├── lib/                             ← 서버-클라이언트 공유 라이브러리 (src/lib)
+│   ├── api.ts                       ← 프론트엔드 API 호출 헬퍼
 ```
 
 이 스킬을 웹 서비스(`src/`, `api/`)가 어떻게 호출하는지는 저장소 루트의 README.md 에 정리했다.
@@ -187,3 +237,6 @@ skill/
 - 보험료율: 국민연금공단 「연금보험료」 안내 — 2025년까지 9%, 2026년부터 해마다 0.5%p씩 올라 2033년 13%. 추정 평균 기준소득월액은 자료 연도의 보험료율로 역산한다 (2026년 9.5%) — https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0038M0.do
 - 기준소득월액 상한: 국민연금공단 「2026년도 국민연금 기준소득월액 상·하한액 조정 안내」 — 2026-07 ~ 2027-06 상한 6,590,000원 — https://www.nps.or.kr/pnsgdnc/newgdnc/getOHAE0001M1.do?menuId=MN24000897&pstId=NE202500000000030479
 - 지표 정의·임계값·실측 근거: `references/metrics.md`
+- 웹 제작 도움 스킬 (공식문서와 Solar Pro4를 이용해 Hermes용으로 변환) — https://github.com/tenfoldmarc/website-builder-setup 
+- 웹페이지 무료 템플릿 — https://21st.dev/community/templates/free?preview=%2F%40tailgrids%2Ftemplates%2Ftailgrids-saasly 
+
