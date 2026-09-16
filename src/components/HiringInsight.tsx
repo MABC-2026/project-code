@@ -1,3 +1,6 @@
+import React from "react";
+import FlowChart from "./FlowChart";
+
 export default function HiringInsight({
   rows,
 }: {
@@ -182,6 +185,8 @@ export default function HiringInsight({
         <h3 className="text-sm font-semibold text-zinc-900">인력 흐름으로 본 채용</h3>
         <span className="text-xs text-zinc-500">최근 {n}개월 · 국민연금 기록</span>
       </div>
+
+      <FlowChart 추이={rows} />
 
       <p className="mt-3 text-xs font-medium text-zinc-500">채용의 성격</p>
       {채용성격문장}
