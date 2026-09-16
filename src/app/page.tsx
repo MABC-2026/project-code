@@ -5,6 +5,7 @@ import TrendTable from "@/components/TrendTable";
 import ExplainCard from "@/components/ExplainCard";
 import AgentSteps, { type AgentStep } from "@/components/AgentSteps";
 import HiringInsight from "@/components/HiringInsight";
+import ThoughtTrail from "@/components/ThoughtTrail";
 import CompareTable, { type CompareEntry } from "@/components/CompareTable";
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -499,7 +500,7 @@ export default function Home() {
       )}
 
       {phase === "result" && result && (
-        <div className="w-full max-w-2xl rounded-lg border border-zinc-200 bg-white p-4">
+        <div className="w-full max-w-7xl">
           <h2 className="mb-1 text-lg font-semibold text-zinc-900">{result.사업장명}</h2>
           {resultMeta?.대체사유 ? (
             <div className="mt-1 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-700">
@@ -514,7 +515,12 @@ export default function Home() {
           {resultMeta?.계절성주의 && (
             <p className="text-sm text-zinc-600 mt-1">7월·1월 자료는 공공기관 정기 인사이동이 섞여 회전율이 높게 나올 수 있습니다</p>
           )}
-          <AgentSteps steps={steps} compact />
+          <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <aside className="order-2 self-start lg:order-1 lg:sticky lg:top-6 lg:col-span-4">
+              <AgentSteps steps={steps} />
+              <ThoughtTrail 진단결과={result} 추이={resultMeta?.추이} />
+            </aside>
+            <div className="order-1 min-w-0 rounded-lg border border-zinc-200 bg-white p-4 lg:order-2 lg:col-span-8">
               <ExplainCard loading={explain.loading} error={explain.error} data={explain.data} 진단결과={result} 추이={resultMeta?.추이} />
           <HiringInsight rows={resultMeta?.추이} />
 
@@ -673,10 +679,12 @@ export default function Home() {
                 </button>
               )}
             </div>
+          </div>
         </div>
+      </div>
       )}
 
-      {phase === "compare" && (
+     {phase === "compare" && (
         <div className="w-full max-w-4xl rounded-lg border border-zinc-200 bg-white p-4">
           <CompareTable
             entries={compareList}

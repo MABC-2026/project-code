@@ -55,7 +55,7 @@ export default function AgentSteps({ steps, compact = false }: { steps: AgentSte
 
   return (
     <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4">
-      <p className="text-sm font-medium text-zinc-900">에이전트가 진단하는 중이에요</p>
+      <p className="text-sm font-medium text-zinc-900">{steps.some((s) => s.상태 === "진행") ? "에이전트가 진단하는 중이에요" : "에이전트가 진단한 과정"}</p>
       <ol className="mt-3 space-y-2">
         {steps.map((s, i) => {
           const raw = 단계이름[s.단계] ?? s.단계;
