@@ -64,9 +64,14 @@ export default function ExplainCard({ loading, error, data, 진단결과, 추이
       {h.지원_전에_확인해보세요 && h.지원_전에_확인해보세요.length > 0 && (
         <>
           <p className="mt-3 text-xs font-medium text-zinc-500">지원 전에 확인해보세요</p>
-          <ul className="mt-1 list-disc pl-5 text-sm text-zinc-800">
+          <ul className="mt-2 grid gap-2 sm:grid-cols-3">
             {h.지원_전에_확인해보세요.map((문장: string, i: number) => (
-              <li key={i}>{문장}</li>
+              <li
+                key={i}
+                className="rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-800"
+              >
+                {문장}
+              </li>
             ))}
           </ul>
         </>

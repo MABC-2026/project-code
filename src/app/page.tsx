@@ -528,6 +528,11 @@ export default function Home() {
               <KeyNumbers 진단결과={result} 추이={resultMeta?.추이} />
               <HiringInsight rows={resultMeta?.추이} />
 
+          <details className="mt-4 rounded-lg border border-zinc-200 p-3">
+            <summary className="cursor-pointer text-sm font-medium text-zinc-700">
+              숫자 자세히 보기
+            </summary>
+
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
             <dt className="text-zinc-500">업종 / 지역</dt>
             <dd className="text-zinc-900">{result.업종 || resultMeta?.원본_업종명 || "-"} / {result.시도 || "-"}</dd>
@@ -614,6 +619,7 @@ export default function Home() {
             )}
           </div>
 
+          </details>
 
 
           <TrendTable
