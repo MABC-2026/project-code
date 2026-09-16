@@ -23,10 +23,20 @@ ROOT = os.path.dirname(HERE)
 SAMPLE = os.path.join(ROOT, "assets", "sample_workplaces.csv")
 BASELINE = os.path.join(ROOT, "assets", "industry_baseline.csv")
 
-# 2026-07 원본 데이터(593,997행) 실측 상한. 국민연금 기준소득월액 상한에 걸린 값이다.
-# 상한이 바뀌면 이 값을 갱신해야 한다. 근거는 references/metrics.md 참조.
-CAP_OBSERVED = 6_956_000
-RATE = 0.09                    # 국민연금 사업장 보험료율(근로자 4.5 + 사용자 4.5)
+# 국민연금 기준소득월액 상한. 2026-07 ~ 2027-06 적용 6,590,000원(국민연금공단 안내).
+# 2026-07 원본 데이터의 (고지금액 ÷ 가입자수 ÷ 9.5%) 최댓값과 맞는다. 매년 7월 바뀌므로 갱신해야 한다. 근거는 references/metrics.md 참조.
+CAP_OBSERVED = 6_590_000
+
+
+def 보험료율(년월):
+    """국민연금 사업장가입자 보험료율(근로자·사용자 절반씩). 2025년까지 9%, 2026년부터 해마다 0.5%p 올라 2033년 13%."""
+    m = re.match(r"(\d{4})", 년월 or "")
+    if not m:
+        return 0.095
+    연도 = int(m.group(1))
+    if 연도 <= 2025:
+        return 0.09
+    return round(min(0.13, 0.09 + 0.005 * (연도 - 2025)), 4)
 MIN_HEADCOUNT = 30             # 이 미만은 회전율이 노이즈에 지배된다
 
 ALIASES = {
@@ -292,7 +302,7 @@ def compute(path=None, company=None, top_n=None):
         r["분리율"] = r["상실"] / r["가입자수"]
         # 은폐지수 — 총원 변화 뒤에 몇 배의 사람이 오갔는가
         r["은폐지수"] = r["총이동"] / max(abs(r["순증감"]), 1)
-        r["추정소득"] = (r["고지금액"] / r["가입자수"] / RATE) if r["고지금액"] > 0 else 0
+        r["추정소득"] = (r["고지금액"] / r["가입자수"] / 보험료율(r["년월"])) if r["고지금액"] > 0 else 0
 
     # 업종 기준선: 입력이 충분히 크면 자체 산출, 아니면 동봉 기준선
     by_ind = defaultdict(list)
