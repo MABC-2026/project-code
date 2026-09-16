@@ -445,7 +445,7 @@ function CandidatesInner() {
               )}
 
               {/* 하단 컨트롤 */}
-              <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border-default)] pt-4">
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border-default)] px-5 pt-4 pb-1 sm:px-6">
                 <p className="text-xs text-[var(--text-zinc-500)]">
                   찾는 회사가 없나요?{" "}
                   <a
